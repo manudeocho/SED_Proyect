@@ -1,4 +1,3 @@
-#include <LPC17xx.h>
 #include "mainheader.h"
 
 void config_pwm2(void)
