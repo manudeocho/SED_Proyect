@@ -91,3 +91,207 @@ Build target 'Target 1'
 linking...
 Program Size: Code=4604 RO-data=236 RW-data=12 ZI-data=612  
 ".\Proyect.axf" - 0 Errors, 0 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(9): warning:  #1-D: last line of file ends without a newline
+main.c(35): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(9): warning:  #1-D: last line of file ends without a newline
+configs.c(20): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+".\Proyect.axf" - 1 Errors, 4 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(9): warning:  #1-D: last line of file ends without a newline
+main.c(35): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(9): warning:  #1-D: last line of file ends without a newline
+configs.c(20): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+".\Proyect.axf" - 1 Errors, 4 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(9): warning:  #1-D: last line of file ends without a newline
+main.c(34): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(9): warning:  #1-D: last line of file ends without a newline
+configs.c(19): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+".\Proyect.axf" - 1 Errors, 4 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(7): warning:  #1-D: last line of file ends without a newline
+main.c(35): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(7): warning:  #1-D: last line of file ends without a newline
+configs.c(19): warning:  #1-D: last line of file ends without a newline
+linking...
+Program Size: Code=4060 RO-data=236 RW-data=8 ZI-data=608  
+".\Proyect.axf" - 0 Errors, 4 Warning(s).
+Build target 'Target 1'
+linking...
+Program Size: Code=4060 RO-data=236 RW-data=8 ZI-data=608  
+".\Proyect.axf" - 0 Errors, 0 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+main.c(17): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+configs.c(19): warning:  #1-D: last line of file ends without a newline
+compiling encoder_botton.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+encoder_botton.c(21): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by encoder_botton.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by encoder_botton.o and main.o).
+".\Proyect.axf" - 4 Errors, 6 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+main.c(15): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+configs.c(19): warning:  #1-D: last line of file ends without a newline
+compiling encoder_botton.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+encoder_botton.c(21): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by encoder_botton.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by encoder_botton.o and main.o).
+".\Proyect.axf" - 4 Errors, 6 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling encoder_botton.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+encoder_botton.c(26): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by encoder_botton.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by encoder_botton.o and main.o).
+".\Proyect.axf" - 4 Errors, 2 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling encoder_botton.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+encoder_botton.c(22): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by encoder_botton.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by encoder_botton.o and main.o).
+".\Proyect.axf" - 4 Errors, 2 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(19): warning:  #1-D: last line of file ends without a newline
+main.c(15): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(19): warning:  #1-D: last line of file ends without a newline
+configs.c(19): warning:  #1-D: last line of file ends without a newline
+compiling encoder_botton.c...
+mainheader.h(19): warning:  #1-D: last line of file ends without a newline
+encoder_botton.c(22): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by encoder_botton.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by encoder_botton.o and main.o).
+".\Proyect.axf" - 4 Errors, 6 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+main.c(15): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+configs.c(19): warning:  #1-D: last line of file ends without a newline
+compiling encoder_botton.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+encoder_botton.c(19): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by encoder_botton.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by encoder_botton.o and main.o).
+".\Proyect.axf" - 4 Errors, 6 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+main.c(15): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by encoder_botton.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by encoder_botton.o and main.o).
+".\Proyect.axf" - 4 Errors, 2 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(14): warning:  #1-D: last line of file ends without a newline
+main.c(15): warning:  #1-D: last line of file ends without a newline
+linking...
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol grados multiply defined (by encoder_botton.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by configs.o and main.o).
+.\Proyect.axf: Error: L6200E: Symbol estado multiply defined (by encoder_botton.o and main.o).
+".\Proyect.axf" - 4 Errors, 2 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+main.c(19): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+configs.c(19): warning:  #1-D: last line of file ends without a newline
+compiling encoder_botton.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+encoder_botton.c(9): error:  #20: identifier "grados" is undefined
+encoder_botton.c(12): error:  #20: identifier "grados" is undefined
+encoder_botton.c(14): error:  #20: identifier "grados" is undefined
+encoder_botton.c(19): warning:  #1-D: last line of file ends without a newline
+".\Proyect.axf" - 3 Errors, 6 Warning(s).
+Target not created
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+main.c(13): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+configs.c(19): warning:  #1-D: last line of file ends without a newline
+compiling encoder_botton.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+encoder_botton.c(21): warning:  #1-D: last line of file ends without a newline
+compiling short_functions.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+linking...
+Program Size: Code=4060 RO-data=236 RW-data=8 ZI-data=608  
+".\Proyect.axf" - 0 Errors, 7 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+main.c(13): warning:  #1-D: last line of file ends without a newline
+compiling configs.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+configs.c(19): warning:  #1-D: last line of file ends without a newline
+compiling encoder_botton.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+encoder_botton.c(21): warning:  #1-D: last line of file ends without a newline
+compiling short_functions.c...
+mainheader.h(11): warning:  #1-D: last line of file ends without a newline
+linking...
+Program Size: Code=4060 RO-data=236 RW-data=8 ZI-data=608  
+".\Proyect.axf" - 0 Errors, 7 Warning(s).
