@@ -50,7 +50,7 @@ void SystickIRQHandler(){
 		uint16_t distancia = 0;
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
-		if(estado == 12 & MAX>MIN){ //Si modo automático 
+		if(estado == 12 & MAX>MIN){ //Si modo automÃ¡tico 
 			grados = MIN;
 			if(direccion == 0){ //Si va a la derecha
 				grados = grados + 10; //aumenta en 10 los grados
@@ -60,8 +60,8 @@ void SystickIRQHandler(){
 				grados = grados - 10;	//disminuye en 10 los grados
 				set_servo(grados);	//mueve el servo a esa posicion
 			}
-			if(grados < MIN+1 | grados > MAX-1){ //si los grados están en las posiciones límite 
-				direccion ^= 1; //cambia la dirección
+			if(grados < MIN+1 | grados > MAX-1){ //si los grados estÃ¡n en las posiciones lÃ­mite 
+				direccion ^= 1; //cambia la direcciÃ³n
 			}
 		}
 		
@@ -93,7 +93,11 @@ void SystickIRQHandler(){
 			}
 			if(estado == 11){ // 11->12
 				MIN = 5*LPC_QEI->QEIPOS;
-				estado_siguiente = 12;
+				if(MIN>MAX || MIN==MAX){ //11->15
+					//display_go_again();
+					estado_siguiente = 10; //15->10
+				}
+				else estado_siguiente = 12;
 			}
 			if(estado == 12){ // 12->13
 				//activar timer
