@@ -17,7 +17,8 @@ void config_EINT0(void){
 	}
 	
 void config_pwm1(void){
-		LPC_PINCON->PINSEL3|=(2<<4); // P1.18 salida PWM (PWM1.1)
+		LPC_PINCON->PINSEL3|=(0x2<<4); // P1.18 salida PWM (PWM1.1)
+		LPC_PINCON->PINMODE3|= (0<<4); 	// Habilita pullup
 		LPC_SC->PCONP|=(1<<6); //Se activa el pwm
 		LPC_PWM1->MR0=Fpclk*Tpwm-1; //Se pone el n?mero del contador 
 		LPC_PWM1->PCR|=(1<<9); //configurado el ENA2 (1.1)
@@ -29,6 +30,7 @@ void config_encoder(void){
 		LPC_SC->PCONP|=(1<<18); //Power on encoder
 		LPC_PINCON->PINSEL3|=(1<<8)|(1<<14); //MCI0 and MCI1 modes enabled
 		LPC_QEI->QEIMAXPOS = 4e9; //Pos max 4 mil millones
+		//digital filter
 	}
 
 void config_Systick(){
@@ -42,15 +44,17 @@ uint16_t get_IR_distance(){
 	}
 	
 void set_servo(float Grados){
-    LPC_PWM1->MR2=(Fpclk*1e-3 + Fpclk*1e-3*Grados/180); //Var?a en funci?n de los grados el Duty cicle desde 100/15 % a 200/15 % 
-		LPC_PWM1->LER|=(1<<2)|(1<<0); //Enable el Match 0 y el Match 2 (MR0 and MR2)
-	}	
+	if(Grados > 180) Grados = 180;
+    LPC_PWM1->MR1=(Fpclk*0.5e-3 + Fpclk*2.5e-3*Grados/180); //Var?a en funci?n de los grados el Duty cicle desde 100/15 % a 200/15 % 
+		LPC_PWM1->LER|=(1<<1)|(1<<0); //Enable el Match 0 y el Match 1 (MR0 and MR1)
+	
+}	
 	
 void SystickIRQHandler(){
 		uint16_t distancia = 0;
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
-		if(estado == 12 & MAX>MIN){ //Si modo automático 
+		if(estado == 12 & MAX>MIN){ //Si modo autom�tico 
 			grados = MIN;
 			if(direccion == 0){ //Si va a la derecha
 				grados = grados + 10; //aumenta en 10 los grados
@@ -60,8 +64,8 @@ void SystickIRQHandler(){
 				grados = grados - 10;	//disminuye en 10 los grados
 				set_servo(grados);	//mueve el servo a esa posicion
 			}
-			if(grados < MIN+1 | grados > MAX-1){ //si los grados están en las posiciones límite 
-				direccion ^= 1; //cambia la dirección
+			if(grados < MIN+1 | grados > MAX-1){ //si los grados est�n en las posiciones l�mite 
+				direccion ^= 1; //cambia la direcci�n
 			}
 		}
 		
@@ -79,7 +83,7 @@ void SystickIRQHandler(){
 				//activar timer
 				grados = 5*LPC_QEI->QEIPOS;
 				set_servo(grados); //if click -> QUEIPOS= QUEIPOS +2
-				//LPC_SC->PCONP = LPC_SC->PCONP & 0xFFFBFFFF; //desactivar encoder
+				LPC_SC->PCONP = LPC_SC->PCONP & 0xFFFBFFFF; //desactivar encoder
 				estado_siguiente = 3;
 			}
 			if(estado == 3){ // 3->2
@@ -89,15 +93,17 @@ void SystickIRQHandler(){
 			}
 			if(estado == 10){ // 10->11
 				MAX = 5*LPC_QEI->QEIPOS;
+				set_servo(MAX);
 				estado_siguiente = 11;
 			}
-			if(estado == 11){ // 11->12
+			if(estado == 11){ // 11->12 or 15
 				MIN = 5*LPC_QEI->QEIPOS;
+				set_servo(MIN);
 				if(MIN>MAX || MIN==MAX){ //11->15
 					//display_go_again();
 					estado_siguiente = 10; //15->10
 				}
-				else estado_siguiente = 12;
+				else estado_siguiente = 12; //11->12
 			}
 			if(estado == 12){ // 12->13
 				//activar timer
