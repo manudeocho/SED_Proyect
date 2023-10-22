@@ -1,5 +1,12 @@
 #include <LPC17xx.H>
 
+//ENCODER:
+//SW -> P2.10
+//DT -> P1.23
+//CLK -> P1.20
+//SERVO:
+//CTRL -> P1.18
+
 #define Fpclk 25e6	// Fcpu/4 (defecto despu?s del reset)
 #define Tpwm 20e-3	// Perido de la se?al PWM (15ms)
 
@@ -33,8 +40,8 @@ void config_encoder(void){
 		//digital filter
 	}
 
-void config_Systick(){
-	
+void config_TIMER1(){
+		
 	
 	}
 
@@ -45,16 +52,16 @@ uint16_t get_IR_distance(){
 	
 void set_servo(float Grados){
 	if(Grados > 180) Grados = 180;
-    LPC_PWM1->MR1=(Fpclk*0.5e-3 + Fpclk*2.5e-3*Grados/180); //Var?a en funci?n de los grados el Duty cicle desde 100/15 % a 200/15 % 
+    LPC_PWM1->MR1=(Fpclk*0.8e-3 + Fpclk*(2.7-0.8)*1e-3*Grados/180); //Var?a en funci?n de los grados el Duty cicle desde 0.5/15 a 2.5/15
 		LPC_PWM1->LER|=(1<<1)|(1<<0); //Enable el Match 0 y el Match 1 (MR0 and MR1)
 	
 }	
 	
-void SystickIRQHandler(){
+void TIMER1_IRQHandler(){
 		uint16_t distancia = 0;
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
-		if(estado == 12 & MAX>MIN){ //Si modo autom�tico 
+		if(estado == 12){ //Si modo autom�tico 
 			grados = MIN;
 			if(direccion == 0){ //Si va a la derecha
 				grados = grados + 10; //aumenta en 10 los grados
@@ -136,7 +143,7 @@ int main(void)
 	config_EINT0();
 	config_pwm1();
 	config_encoder();
-	config_Systick();
+	config_TIMER1();
 	
 	while(1);
 }
