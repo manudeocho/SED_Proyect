@@ -41,7 +41,12 @@ void config_encoder(void){
 	}
 
 void config_TIMER1(){
-		
+		LPC_SC->PCONP |= 1 << 2; 					// Power up Timer1
+		LPC_TIM1->MR0 = (Fpclk/2)-1;			// 25e6/2 para interrumpir cada medio segundo
+		LPC_TIM1->MCR |= 1 << 0;					// Interrupt on Match 0 
+		LPC_TIM1->MCR |= 1 << 1; 					// Reset on Match 0
+		NVIC_EnableIRQ(TIMER1_IRQn); 
+		LPC_TIM0->TCR |= 1 << 0; 					// Start timer
 	
 	}
 
@@ -58,11 +63,14 @@ void set_servo(float Grados){
 }	
 	
 void TIMER1_IRQHandler(){
-		uint16_t distancia = 0;
+		
+		//uint16_t distancia = 0;
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
+		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupción
+	
 		if(estado == 12){ //Si modo autom�tico 
-			grados = MIN;
+			
 			if(direccion == 0){ //Si va a la derecha
 				grados = grados + 10; //aumenta en 10 los grados
 				set_servo(grados); //mueve el servo a esa posicion
@@ -76,7 +84,7 @@ void TIMER1_IRQHandler(){
 			}
 		}
 		
-		distancia = get_IR_distance(); //saca la distancia
+		//distancia = get_IR_distance(); //saca la distancia
 		//display(distancia);	//la pone en el display
 	
 	}
@@ -106,6 +114,7 @@ void TIMER1_IRQHandler(){
 			if(estado == 11){ // 11->12 or 15
 				MIN = 5*LPC_QEI->QEIPOS;
 				set_servo(MIN);
+				grados = MIN;
 				if(MIN>MAX || MIN==MAX){ //11->15
 					//display_go_again();
 					estado_siguiente = 10; //15->10
