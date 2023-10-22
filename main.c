@@ -46,7 +46,7 @@ void config_TIMER1(){
 		LPC_TIM1->MCR |= 1 << 0;					// Interrupt on Match 0 
 		LPC_TIM1->MCR |= 1 << 1; 					// Reset on Match 0
 		NVIC_EnableIRQ(TIMER1_IRQn); 
-		LPC_TIM0->TCR |= 1 << 0; 					// Start timer
+		LPC_TIM1->TCR |= 1 << 0; 					// Start timer
 	
 	}
 
@@ -56,12 +56,13 @@ uint16_t get_IR_distance(){
 	}
 	
 void set_servo(float Grados){
-	if(Grados > 180) Grados = 180;
-    LPC_PWM1->MR1=(Fpclk*0.8e-3 + Fpclk*(2.7-0.8)*1e-3*Grados/180); //Var?a en funci?n de los grados el Duty cicle desde 0.5/15 a 2.5/15
+	if(Grados < 180+1){
+    LPC_PWM1->MR1=(Fpclk*0.5e-3 + Fpclk*(2.4-0.5)*1e-3*Grados/180); //Var?a en funci?n de los grados el Duty cicle desde 0.5/15 a 2.5/15
 		LPC_PWM1->LER|=(1<<1)|(1<<0); //Enable el Match 0 y el Match 1 (MR0 and MR1)
-	
+	}
 }	
-	
+
+
 void TIMER1_IRQHandler(){
 		
 		//uint16_t distancia = 0;
@@ -88,6 +89,7 @@ void TIMER1_IRQHandler(){
 		//display(distancia);	//la pone en el display
 	
 	}
+
 
 	void EINT0_IRQHandler(){ 
 
