@@ -21,6 +21,14 @@ void config_EINT0(void){
 		LPC_SC -> EXTMODE |= (1 << 0); // rising edge
 		//LPC_SC -> EXTPOLAR |= (1 << 0); //flanco de subida
 		NVIC->ISER[0] |= (1 << 18); //Enable interrupcion
+		NVIC_SetPriority( EINT0_IRQn, 0);
+	}
+
+void config_EINT2(void){
+		LPC_PINCON->PINSEL4|=(0x01 << 24); //asocia la interrupcion al pin del bot?n P2.12 (KEY2)
+		LPC_SC -> EXTMODE |= (1 << 2); // rising edge
+		NVIC->ISER[0] |= (1 << 20); //Enable interrupcion
+		NVIC_SetPriority( EINT2_IRQn, 1);
 	}
 	
 void config_pwm1(void){
@@ -47,7 +55,17 @@ void config_TIMER1(){
 		LPC_TIM1->MCR |= 1 << 1; 					// Reset on Match 0
 		NVIC_EnableIRQ(TIMER1_IRQn); 
 		LPC_TIM1->TCR |= 1 << 0; 					// Start timer
-	
+		NVIC_SetPriority( TIMER1_IRQn, 2);
+	}
+
+void config_TIMER3(){
+		LPC_SC->PCONP |= 1 << 23; 				// Power up Timer3
+		LPC_TIM3->MR0 = (Fpclk*0.001)-1;	// 25e6/2 para interrumpir cada medio segundo
+		LPC_TIM3->MCR |= 1 << 0;					// Interrupt on Match 0 
+		LPC_TIM3->MCR |= 1 << 1; 					// Reset on Match 0
+		//NVIC_EnableIRQ(TIMER3_IRQn); 
+		LPC_TIM3->TCR |= 1 << 0; 					// Start timer
+		NVIC_SetPriority( TIMER3_IRQn, 2);
 	}
 
 uint16_t get_IR_distance(){
@@ -69,7 +87,10 @@ void TIMER1_IRQHandler(){
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
 		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupción
-	
+		
+		if (estado == 3){
+
+		}
 		if(estado == 12){ //Si modo autom�tico 
 			
 			if(direccion == 0){ //Si va a la derecha
@@ -87,14 +108,29 @@ void TIMER1_IRQHandler(){
 		
 		//distancia = get_IR_distance(); //saca la distancia
 		//display(distancia);	//la pone en el display
+	}
 	
+	void TIMER3_IRQHandler(){
+		
+		LPC_TIM3->IR |= 1 << 0; // Borrar flag de interrupción
+		NVIC->ICER[0] |= (1<<4); //Deshabilitar timer 3
+		NVIC->ISER[0] |= (1 << 18); //Enable interrupcion del EINT0
+		NVIC_EnableIRQ(TIMER1_IRQn);
+		
 	}
 
-
 	void EINT0_IRQHandler(){ 
-
+		
 		uint8_t estado_siguiente = 0;
+		
 		LPC_SC->EXTINT|=1;//limpiar la flag
+		
+		NVIC->ICER[0] |= (1 << 18); //Desable interrupcion del EINT0
+		//LPC_TIM2->TC = 0; //Timer 2 Timer Counter = 0
+		NVIC->ISER[0] |= (1<<4); //Habilitar timer 3
+		LPC_TIM3->TCR |= (1 << 1); // Reset timer
+		LPC_TIM3->TCR &= ~(1 << 1); // Start timer
+		NVIC_EnableIRQ(TIMER1_IRQn);
 		
 			if(estado == 2){ // 2->3
 				//activar timer
@@ -137,6 +173,14 @@ void TIMER1_IRQHandler(){
 		
 	}
 	
+	void EINT2_IRQHandler(){
+		
+		LPC_SC->EXTINT|=(1<<2);
+		if(estado == 12){
+			estado = 10;
+		}
+	}
+	
 int main(void)
 {
 	//Config mode
@@ -151,10 +195,13 @@ int main(void)
 		estado = 10; //Estado en el que el encoder mide MAX
 	}
 	
+	NVIC_SetPriorityGrouping(2);
 	config_EINT0();
+	config_EINT2();
 	config_pwm1();
 	config_encoder();
 	config_TIMER1();
+	config_TIMER3();
 	
 	while(1);
 }
