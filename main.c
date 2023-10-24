@@ -91,6 +91,8 @@ void TIMER1_IRQHandler(){
 		if (estado == 3){
 
 		}
+		if(estado == 10) direccion = 0;
+			
 		if(estado == 12){ //Si modo autom�tico 
 			
 			if(direccion == 0){ //Si va a la derecha
@@ -113,9 +115,8 @@ void TIMER1_IRQHandler(){
 	void TIMER3_IRQHandler(){
 		
 		LPC_TIM3->IR |= 1 << 0; // Borrar flag de interrupción
-		NVIC->ICER[0] |= (1<<4); //Deshabilitar timer 3
+		NVIC_DisableIRQ(TIMER3_IRQn); //Desable timer 3
 		NVIC->ISER[0] |= (1 << 18); //Enable interrupcion del EINT0
-		NVIC_EnableIRQ(TIMER1_IRQn);
 		
 	}
 
@@ -125,12 +126,11 @@ void TIMER1_IRQHandler(){
 		
 		LPC_SC->EXTINT|=1;//limpiar la flag
 		
-		NVIC->ICER[0] |= (1 << 18); //Desable interrupcion del EINT0
-		//LPC_TIM2->TC = 0; //Timer 2 Timer Counter = 0
+		NVIC_DisableIRQ(EINT0_IRQn); //Deshabilita EINT0
 		NVIC->ISER[0] |= (1<<4); //Habilitar timer 3
 		LPC_TIM3->TCR |= (1 << 1); // Reset timer
 		LPC_TIM3->TCR &= ~(1 << 1); // Start timer
-		NVIC_EnableIRQ(TIMER1_IRQn);
+		
 		
 			if(estado == 2){ // 2->3
 				//activar timer
