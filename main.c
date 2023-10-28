@@ -125,6 +125,10 @@ void set_servo(float Grados){
 		display_texto(16,"Grados:",orange);
 		display_numero(17, Grados, orange);
 	}
+	else{
+		display_texto(16,"Error: Angulo no valido",RED);
+		display_texto(17, "Vuelva a dar al boton", orange);
+	}
 }	
 
 
@@ -218,15 +222,19 @@ void TIMER1_IRQHandler(){
 			
 			case 10:
 				MAX = 5*LPC_QEI->QEIPOS;
+				display_texto(12,"Angulo maximo:",YELLOW);
+				display_numero(13,MAX,YELLOW);
 				set_servo(MAX);
 				estado = 11;
 				display_borrar(0,2);
-				display_borrar(10,12);
+				display_borrar(10,11);
 				display_texto(1,"Decida el angulo minimo",light_blue);
 				break;
 			
 			case 11: // 11->12 or 15
 				MIN = 5*LPC_QEI->QEIPOS;
+				display_texto(14,"Angulo minimo:",YELLOW);
+				display_numero(15,MIN,YELLOW);
 				set_servo(MIN);
 				grados = MIN;
 				if(MIN>MAX || MIN==MAX){ //11->15
@@ -270,6 +278,7 @@ void TIMER1_IRQHandler(){
 		LPC_SC->EXTINT|=(1<<2);
 		if(estado == 12){
 			estado = 10;
+			display_borrar(10,11);
 			display_texto(1,"Decida de nuevo el angulo",light_blue);
 			display_texto(2,"maximo",light_blue);
 		}
