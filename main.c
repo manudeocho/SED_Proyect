@@ -1,4 +1,7 @@
 #include <LPC17xx.H>
+#include "lcddriver.h"
+#include <stdio.h>
+#include <string.h>
 
 //ENCODER:
 //SW -> P2.10
@@ -7,14 +10,25 @@
 //SERVO:
 //CTRL -> P1.18
 
+#define F_cpu 100e6					// Defecto Keil (xtal=12Mhz)
 #define Fpclk 25e6	// Fcpu/4 (defecto despu?s del reset)
 #define Tpwm 20e-3	// Perido de la se?al PWM (15ms)
+
+#define light_blue 0x07FF
+#define orange 0xFB00
+#define gris 0x39C5
+#define light_green 0x0730
 
 uint8_t MIN = 0;
 uint8_t MAX = 180;
 
+uint8_t mode = 0; // 0->Manual 1->Automatic
 uint8_t estado = 0;
 uint32_t grados = 0;
+
+char buffer[25];
+				
+  
 
 void config_EINT0(void){
 		LPC_PINCON->PINSEL4|=(0x01 << 20); //asocia la interrupcion al pin del bot?n P2.10
@@ -60,7 +74,7 @@ void config_TIMER1(){
 
 void config_TIMER3(){
 		LPC_SC->PCONP |= 1 << 23; 				// Power up Timer3
-		LPC_TIM3->MR0 = (Fpclk*0.001)-1;	// 25e6/2 para interrumpir cada medio segundo
+		LPC_TIM3->MR0 = (Fpclk*0.4)-1;	// 
 		LPC_TIM3->MCR |= 1 << 0;					// Interrupt on Match 0 
 		LPC_TIM3->MCR |= 1 << 1; 					// Reset on Match 0
 		//NVIC_EnableIRQ(TIMER3_IRQn); 
@@ -72,18 +86,52 @@ uint16_t get_IR_distance(){
 		uint16_t Distancia = 0;
 		return Distancia;
 	}
+
+uint16_t get_temperature(){
+		uint16_t Temp = 0;
+		return Temp;
+	}
+
+
+void display_numero(uint8_t Linea, char Texto, uint16_t color){
 	
+	sprintf(buffer,"                                                            ");
+	drawString(10,Linea*16, buffer, BLACK, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+	sprintf(buffer,"%d",Texto);
+	drawString(10,Linea*16, buffer, BLACK, color, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+}
+
+void display_texto(uint8_t Linea, char *Texto, uint16_t color){
+	sprintf(buffer,"                                                            ");
+	drawString(10,Linea*16, buffer, BLACK, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+	sprintf(buffer,"%s",Texto);
+	drawString(10,Linea*16, buffer, BLACK, color, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+
+}
+
+void display_borrar(uint8_t min, uint8_t max){
+	
+	uint8_t i;
+	
+	for(i=min;i<max+1;i++){
+	sprintf(buffer,"                                                            ");
+	drawString(10,16*i, buffer, BLACK, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+	}
+}
 void set_servo(float Grados){
 	if(Grados < 180+1){
     LPC_PWM1->MR1=(Fpclk*0.5e-3 + Fpclk*(2.4-0.5)*1e-3*Grados/180); //Var?a en funci?n de los grados el Duty cicle desde 0.5/15 a 2.5/15
 		LPC_PWM1->LER|=(1<<1)|(1<<0); //Enable el Match 0 y el Match 1 (MR0 and MR1)
+		display_texto(16,"Grados:",orange);
+		display_numero(17, Grados, orange);
 	}
 }	
 
 
 void TIMER1_IRQHandler(){
 		
-		//uint16_t distancia = 0;
+		uint16_t distancia = 0;
+		float temperature = 0;
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
 		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupción
@@ -91,9 +139,9 @@ void TIMER1_IRQHandler(){
 		if (estado == 3){
 
 		}
-		if(estado == 10) direccion = 0;
+		if(estado == 10)direccion = 0;
 			
-		if(estado == 12){ //Si modo autom�tico 
+		if(estado == 12){ //Si modo autom?tico 
 			
 			if(direccion == 0){ //Si va a la derecha
 				grados = grados + 10; //aumenta en 10 los grados
@@ -103,13 +151,23 @@ void TIMER1_IRQHandler(){
 				grados = grados - 10;	//disminuye en 10 los grados
 				set_servo(grados);	//mueve el servo a esa posicion
 			}
-			if(grados < MIN+1 | grados > MAX-1){ //si los grados est�n en las posiciones l�mite 
-				direccion ^= 1; //cambia la direcci�n
+			if(grados < MIN+1 | grados > MAX-1){ //si los grados est?n en las posiciones l?mite 
+				direccion ^= 1; //cambia la direcci?n
 			}
 		}
 		
-		//distancia = get_IR_distance(); //saca la distancia
-		//display(distancia);	//la pone en el display
+		if(estado == 3 || estado == 12){
+			distancia = get_IR_distance(); //saca la distancia
+			temperature = get_temperature(); 
+			display_texto(4, "Distance:", light_blue);
+			display_numero(5, distancia, light_blue);
+			display_texto(6, "Temperature:", light_blue);
+			display_numero(7, temperature, light_blue);
+		}
+		else if(estado == 1);
+		else{
+			display_borrar(4,7);	
+		}
 	}
 	
 	void TIMER3_IRQHandler(){
@@ -122,7 +180,6 @@ void TIMER1_IRQHandler(){
 
 	void EINT0_IRQHandler(){ 
 		
-		uint8_t estado_siguiente = 0;
 		
 		LPC_SC->EXTINT|=1;//limpiar la flag
 		
@@ -131,45 +188,80 @@ void TIMER1_IRQHandler(){
 		LPC_TIM3->TCR |= (1 << 1); // Reset timer
 		LPC_TIM3->TCR &= ~(1 << 1); // Start timer
 		
-		
-			if(estado == 2){ // 2->3
+		switch(estado){
+			
+			case 1:
+				display_borrar(0,10);
+				estado = 2; //Estado en el que el encoder mide
+				display_texto(10,"Bienvenido al modo manual!",light_green);
+				display_texto(1,"Decida el angulo",light_blue);
+				break; 
+					
+			case 2:
 				//activar timer
+				display_borrar(10,12);
 				grados = 5*LPC_QEI->QEIPOS;
 				set_servo(grados); //if click -> QUEIPOS= QUEIPOS +2
 				LPC_SC->PCONP = LPC_SC->PCONP & 0xFFFBFFFF; //desactivar encoder
-				estado_siguiente = 3;
-			}
-			if(estado == 3){ // 3->2
+				estado = 3;
+				display_texto(1,"Aqui tiene sus medidas",light_blue);
+				display_texto(2,"Pulse al boton para parar",light_blue);
+				break;
+			
+			case 3:
 				//desactivar timer
 				LPC_SC->PCONP|=(1<<18); //activar encoder
-				estado_siguiente = 2;
-			}
-			if(estado == 10){ // 10->11
+				estado = 2;
+				display_borrar(2,2);
+				display_texto(1,"Decida el angulo",light_blue);
+				break;
+			
+			case 10:
 				MAX = 5*LPC_QEI->QEIPOS;
 				set_servo(MAX);
-				estado_siguiente = 11;
-			}
-			if(estado == 11){ // 11->12 or 15
+				estado = 11;
+				display_borrar(0,2);
+				display_borrar(10,12);
+				display_texto(1,"Decida el angulo minimo",light_blue);
+				break;
+			
+			case 11: // 11->12 or 15
 				MIN = 5*LPC_QEI->QEIPOS;
 				set_servo(MIN);
 				grados = MIN;
 				if(MIN>MAX || MIN==MAX){ //11->15
-					//display_go_again();
-					estado_siguiente = 10; //15->10
+					estado = 10; //15->10
+					display_texto(10,"Error: Min no menor que Max",RED);
+					display_texto(1,"Decida de nuevo el angulo",light_blue);
+					display_texto(2,"maximo",light_blue);
 				}
-				else estado_siguiente = 12; //11->12
-			}
-			if(estado == 12){ // 12->13
+				else{
+					estado = 12; //11->12
+					display_texto(1,"Aqui tiene sus medidas",light_blue);
+					display_texto(2,"Pulse al boton para parar",light_blue);
+					display_texto(10,"KEY2 para decidir angulos",light_green);
+					display_texto(11,"de nuevo",light_green);
+				}
+				break;
+				
+			case 12:
 				//activar timer
-				estado_siguiente = 13;
-			}
-			if(estado == 13){ // 13->12
-				//desactivar timer
-				estado_siguiente = 12;
-			}
+				estado = 13;
+				display_borrar(2,2);
+				display_borrar(10,11);
+				display_texto(1,"Pulse al boton para continuar",light_blue);
+				break;
 			
-			estado = estado_siguiente;
-			estado_siguiente = 0;
+			case 13:
+				//desactivar timer
+				estado = 12;
+				display_texto(1,"Aqui tiene sus medidas",light_blue);
+				display_texto(1,"Pulse al boton para parar",light_blue);
+				display_texto(10,"KEY2 para decidir angulos",light_green);
+				break;
+			}
+			display_texto(18,"Estado: ",gris);
+			display_numero(19,estado,gris);
 		
 	}
 	
@@ -178,23 +270,18 @@ void TIMER1_IRQHandler(){
 		LPC_SC->EXTINT|=(1<<2);
 		if(estado == 12){
 			estado = 10;
+			display_texto(1,"Decida de nuevo el angulo",light_blue);
+			display_texto(2,"maximo",light_blue);
 		}
 	}
 	
 int main(void)
 {
 	//Config mode
-	uint8_t mode = 0; // 0->Manual 1->Automatic
 	mode = 1^(((1<<11)&(LPC_GPIO2->FIOPIN))>>11); //if P2.11 is pushed -> mode = 1;
-	if(mode == 0){
-		//config_manual();
-		estado = 2; //Estado en el que el encoder mide
-	}
-	else{
-		//config_automatic();
-		estado = 10; //Estado en el que el encoder mide MAX
-	}
 	
+	lcdInitDisplay();
+  fillScreen(BLACK);
 	NVIC_SetPriorityGrouping(2);
 	config_EINT0();
 	config_EINT2();
@@ -202,6 +289,60 @@ int main(void)
 	config_encoder();
 	config_TIMER1();
 	config_TIMER3();
+	if(mode == 0){
+	estado = 1;
+	display_texto(1,"Welcome to the proyect of",light_green);
+	display_texto(2,"DIGITAL ELECTRONIC SYSTEMS",light_green);
+	display_texto(4,"Push for manual mode",light_blue);
+	display_texto(5,"Reset + KEY1 for automatic",light_blue);
+	display_texto(6,"mode",light_blue);
+	display_texto(8,"By Josilda Soarez and",orange);
+	display_texto(9,"Manuel Sanchez",orange);
+	}
+	else{
+	estado = 10;
+	display_texto(1,"Decida el angulo maximo",light_blue);
+	display_texto(10,"Bienvenido al modo automatico!",light_green);
+	}
+
+	
+
 	
 	while(1);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+void random_comands(void){
+
+//	drawChar(10, 100, 'A', RED, BLACK, SMALL);
+//	drawChar(30, 100, 'A', RED, BLACK, MEDIUM);
+//	drawChar(60, 100, 'A', RED, BLACK, LARGE);
+
+	drawString(10, 00, "hello world!", CYAN, BLACK, SMALL);
+//	drawString(10, 240, "hello world!", YELLOW, BLACK, MEDIUM);
+//	drawString(10, 280, "hello world!", BLACK, WHITE, LARGE);
+//	drawCircle(100, 50, 25, BLUE); //x0, y0, radio, color
+//	fillCircle(100, 85, 25, MAGENTA);
+//	fillRect(100, 63, 70, 20, YELLOW); //x0, y0, ancho, alto, color
+	
+	for(retardo=0;retardo<1000000;retardo++);
+
+	for(contador=0;contador<10;contador++)
+		{
+			sprintf(buffer,"Contando... %d",contador);
+			drawString(10,100, buffer, BLUE, YELLOW, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100 
+			for(retardo=0;retardo<10000000;retardo++);
+		}
+	}*/
