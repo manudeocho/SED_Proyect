@@ -122,12 +122,12 @@ void set_servo(float Grados){
 	if(Grados < 180+1){
     LPC_PWM1->MR1=(Fpclk*0.5e-3 + Fpclk*(2.4-0.5)*1e-3*Grados/180); //Var?a en funci?n de los grados el Duty cicle desde 0.5/15 a 2.5/15
 		LPC_PWM1->LER|=(1<<1)|(1<<0); //Enable el Match 0 y el Match 1 (MR0 and MR1)
-		display_texto(16,"Grados:",orange);
+		display_texto(16,"Degrees:",orange);
 		display_numero(17, Grados, orange);
 	}
 	else{
-		display_texto(16,"Error: Angulo no valido",RED);
-		display_texto(17, "Vuelva a dar al boton", orange);
+		display_texto(16,"Error: not valid degree",RED);
+		display_texto(17, "Push again please", orange);
 	}
 }	
 
@@ -197,8 +197,8 @@ void TIMER1_IRQHandler(){
 			case 1:
 				display_borrar(0,10);
 				estado = 2; //Estado en el que el encoder mide
-				display_texto(10,"Bienvenido al modo manual!",light_green);
-				display_texto(1,"Decida el angulo",light_blue);
+				display_texto(10,"Welcome to manual mode!",light_green);
+				display_texto(1,"Set the angle",light_blue);
 				break; 
 					
 			case 2:
@@ -208,8 +208,8 @@ void TIMER1_IRQHandler(){
 				set_servo(grados); //if click -> QUEIPOS= QUEIPOS +2
 				LPC_SC->PCONP = LPC_SC->PCONP & 0xFFFBFFFF; //desactivar encoder
 				estado = 3;
-				display_texto(1,"Aqui tiene sus medidas",light_blue);
-				display_texto(2,"Pulse al boton para parar",light_blue);
+				display_texto(1,"Measures:",light_blue);
+				display_texto(2,"Push to stop",light_blue);
 				break;
 			
 			case 3:
@@ -217,38 +217,36 @@ void TIMER1_IRQHandler(){
 				LPC_SC->PCONP|=(1<<18); //activar encoder
 				estado = 2;
 				display_borrar(2,2);
-				display_texto(1,"Decida el angulo",light_blue);
+				display_texto(1,"Set the angle",light_blue);
 				break;
 			
 			case 10:
 				MAX = 5*LPC_QEI->QEIPOS;
-				display_texto(12,"Angulo maximo:",YELLOW);
+				display_texto(12,"Maximum angle:",YELLOW);
 				display_numero(13,MAX,YELLOW);
 				set_servo(MAX);
 				estado = 11;
 				display_borrar(0,2);
 				display_borrar(10,11);
-				display_texto(1,"Decida el angulo minimo",light_blue);
+				display_texto(1,"Set minimum angle",light_blue);
 				break;
 			
 			case 11: // 11->12 or 15
 				MIN = 5*LPC_QEI->QEIPOS;
-				display_texto(14,"Angulo minimo:",YELLOW);
+				display_texto(14,"Minimum angle:",YELLOW);
 				display_numero(15,MIN,YELLOW);
 				set_servo(MIN);
 				grados = MIN;
 				if(MIN>MAX || MIN==MAX){ //11->15
 					estado = 10; //15->10
-					display_texto(10,"Error: Min no menor que Max",RED);
-					display_texto(1,"Decida de nuevo el angulo",light_blue);
-					display_texto(2,"maximo",light_blue);
+					display_texto(10,"Error: Min not less than max",RED);
+					display_texto(1,"Set angle max again please",light_blue);
 				}
 				else{
 					estado = 12; //11->12
-					display_texto(1,"Aqui tiene sus medidas",light_blue);
-					display_texto(2,"Pulse al boton para parar",light_blue);
-					display_texto(10,"KEY2 para decidir angulos",light_green);
-					display_texto(11,"de nuevo",light_green);
+					display_texto(1,"Measures:",light_blue);
+					display_texto(1,"Push to stop everything",light_blue);
+					display_texto(10,"KEY2 to set angles again",light_green);
 				}
 				break;
 				
@@ -257,15 +255,15 @@ void TIMER1_IRQHandler(){
 				estado = 13;
 				display_borrar(2,2);
 				display_borrar(10,11);
-				display_texto(1,"Pulse al boton para continuar",light_blue);
+				display_texto(1,"Push to continue",light_blue);
 				break;
 			
 			case 13:
 				//desactivar timer
 				estado = 12;
-				display_texto(1,"Aqui tiene sus medidas",light_blue);
-				display_texto(1,"Pulse al boton para parar",light_blue);
-				display_texto(10,"KEY2 para decidir angulos",light_green);
+				display_texto(1,"Measures:",light_blue);
+				display_texto(1,"Push to stop everything",light_blue);
+				display_texto(10,"KEY2 to set angles again",light_green);
 				break;
 			}
 			display_texto(18,"Estado: ",gris);
@@ -279,8 +277,7 @@ void TIMER1_IRQHandler(){
 		if(estado == 12){
 			estado = 10;
 			display_borrar(10,11);
-			display_texto(1,"Decida de nuevo el angulo",light_blue);
-			display_texto(2,"maximo",light_blue);
+			display_texto(1,"Decide maximum angle again",light_blue);
 		}
 	}
 	
@@ -307,11 +304,15 @@ int main(void)
 	display_texto(6,"mode",light_blue);
 	display_texto(8,"By Josilda Soarez and",orange);
 	display_texto(9,"Manuel Sanchez",orange);
+	display_texto(18,"Estado: ",gris);
+	display_numero(19,estado,gris);
 	}
 	else{
 	estado = 10;
-	display_texto(1,"Decida el angulo maximo",light_blue);
-	display_texto(10,"Bienvenido al modo automatico!",light_green);
+	display_texto(1,"Set maximum angle",light_blue);
+	display_texto(10,"Welcome to automatic mode!",light_green);
+	display_texto(18,"Estado: ",gris);
+	display_numero(19,estado,gris);
 	}
 
 	
