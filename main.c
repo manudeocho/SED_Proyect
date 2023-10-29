@@ -1,4 +1,4 @@
-#include <LPC17xx.H>
+	#include <LPC17xx.H>
 #include "lcddriver.h"
 #include <stdio.h>
 #include <string.h>
@@ -23,6 +23,7 @@
 uint8_t MIN = 0;
 uint8_t MAX = 180;
 
+uint8_t turn_res = 10;
 uint8_t mode = 0; // 0->Manual 1->Automatic
 uint8_t estado = 0;
 uint32_t grados = 0;
@@ -65,11 +66,9 @@ void config_encoder(void){
 		//digital filter
 	}
 
-void config_TIMER1(){
-		uint16_t IR_temp = 500;
-		
+void config_TIMER1(uint16_t IR_Period){
 		LPC_SC->PCONP |= 1 << 2; 					// Power up Timer1
-		LPC_TIM1->MR0 = (Fpclk*(IR_temp*0.001))-1;			// 25e6/2 para interrumpir cada IR_temp ms
+		LPC_TIM1->MR0 = (Fpclk*(IR_Period*0.001))-1;			// 25e6/2 para interrumpir cada IR_temp ms
 		LPC_TIM1->MCR |= 1 << 0;					// Interrupt on Match 0 
 		LPC_TIM1->MCR |= 1 << 1; 					// Reset on Match 0
 		NVIC_EnableIRQ(TIMER1_IRQn); 
@@ -79,16 +78,16 @@ void config_TIMER1(){
 
 void config_TIMER3(){
 		LPC_SC->PCONP |= 1 << 23; 				// Power up Timer3
-		LPC_TIM3->MR0 = (Fpclk*0.4)-1;	// 
+		LPC_TIM3->MR0 = (Fpclk)-1;	// 
 		LPC_TIM3->MCR |= 1 << 0;					// Interrupt on Match 0 
 		LPC_TIM3->MCR |= 1 << 1; 					// Reset on Match 0
-		//NVIC_EnableIRQ(TIMER3_IRQn); 
+		NVIC_DisableIRQ(TIMER3_IRQn); 
 		LPC_TIM3->TCR |= 1 << 0; 					// Start timer
 		NVIC_SetPriority( TIMER3_IRQn, 2);
 	}
 
-uint16_t get_IR_distance(){
-		uint16_t Distancia = 0;
+float get_IR_distance(){
+		float Distancia = 0;
 		return Distancia;
 	}
 
@@ -103,14 +102,14 @@ void display_numero(uint8_t Linea, char Texto, uint16_t color){
 	sprintf(buffer,"                                                            ");
 	drawString(10,Linea*16, buffer, BLACK, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
 	sprintf(buffer,"%d",Texto);
-	drawString(10,Linea*16, buffer, BLACK, color, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+	drawString(10,Linea*16, buffer, color, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
 }
 
 void display_texto(uint8_t Linea, char *Texto, uint16_t color){
 	sprintf(buffer,"                                                            ");
 	drawString(10,Linea*16, buffer, BLACK, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
 	sprintf(buffer,"%s",Texto);
-	drawString(10,Linea*16, buffer, BLACK, color, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+	drawString(10,Linea*16, buffer, color, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
 
 }
 
@@ -139,7 +138,7 @@ void set_servo(float Grados){
 
 void TIMER1_IRQHandler(){
 		
-		uint16_t distancia = 0;
+		float distancia = 0;
 		float temperature = 0;
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
@@ -153,11 +152,11 @@ void TIMER1_IRQHandler(){
 		if(estado == 12){ //Si modo autom?tico 
 			
 			if(direccion == 0){ //Si va a la derecha
-				grados = grados + 10; //aumenta en 10 los grados
+				grados = grados + turn_res; //aumenta en 10 los grados
 				set_servo(grados); //mueve el servo a esa posicion
 			}
 			else{
-				grados = grados - 10;	//disminuye en 10 los grados
+				grados = grados - turn_res;	//disminuye en 10 los grados
 				set_servo(grados);	//mueve el servo a esa posicion
 			}
 			if(grados < MIN+1 | grados > MAX-1){ //si los grados est?n en las posiciones l?mite 
@@ -168,14 +167,29 @@ void TIMER1_IRQHandler(){
 		if(estado == 3 || estado == 12){
 			distancia = get_IR_distance(); //saca la distancia
 			temperature = get_temperature(); 
-			display_texto(4, "Distance:", light_blue);
-			display_numero(5, distancia, light_blue);
-			display_texto(6, "Temperature:", light_blue);
-			display_numero(7, temperature, light_blue);
+			
+			//display_texto(4, "Distance:", light_blue);
+			sprintf(buffer,"%s","Distance:");
+			drawString(85,4*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			//display_numero(5, distancia, light_blue);
+			sprintf(buffer,"        ");
+			drawString(55,5*16, buffer, RED, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			sprintf(buffer,"%f",distancia);
+			drawString(55,5*16, buffer, RED, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			//display_texto(7, "Temperature:", light_blue);
+			sprintf(buffer,"%s","Temperature:");
+			drawString(75,7*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			//display_numero(8, temperatura, light_blue);
+			sprintf(buffer,"        ");
+			drawString(55,8*16, buffer, RED, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			sprintf(buffer,"%f",temperature);
+			drawString(55,8*16, buffer, RED, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			
+			uart0_fputs("Distance:\n");
 		}
 		else if(estado == 1);
 		else{
-			display_borrar(4,7);	
+			display_borrar(4,9);	
 		}
 	}
 	
@@ -292,6 +306,7 @@ void TIMER1_IRQHandler(){
 int main(void)
 {
 	int ret;
+	uint16_t IR_period = 500;
 	
 	//Config mode
 	mode = 1^(((1<<11)&(LPC_GPIO2->FIOPIN))>>11); //if P2.11 is pushed -> mode = 1;
@@ -303,18 +318,12 @@ int main(void)
 	
 	lcdInitDisplay();
   fillScreen(BLACK);
-	NVIC_SetPriorityGrouping(2);
-	config_EINT0();
-	config_EINT2();
-	config_pwm1();
-	config_encoder();
-	config_TIMER1();
-	config_TIMER3();
+
 	if(mode == 0){
 	estado = 1;
-	uart0_fputs("Bienvenido\n\r");
-	uart0_fputs("Push for manual mode\n\r");
-	uart0_fputs("Reset + KEY1 for automatic\n\r");
+	uart0_fputs("Welcome!!!\n");
+	uart0_fputs("Push for manual mode\n");
+	uart0_fputs("Reset + KEY1 for automatic\n");
 	display_texto(1,"Welcome to the proyect of",light_green);
 	display_texto(2,"DIGITAL ELECTRONIC SYSTEMS",light_green);
 	display_texto(4,"Push for manual mode",light_blue);
@@ -327,24 +336,24 @@ int main(void)
 	}
 	else{
 	estado = 10;
-	uart0_fputs("You are in Automatic Mode.\n 1. xxg? (turning resolution in degrees as 'xx', followed by 'g' and finished by Enter, i.e.: 10g, 15g, 20g\n");
-	while(1){
-		uart0_gets(rx_msg);
-		uart0_puts(rx_msg);
-	}
-	
+	uart0_fputs("You are in Automatic Mode:\n 1. xxg? (turning resolution in degrees as 'xx', followed by 'g' and finished by Enter, i.e.: 10g, 15g, 20g\n");
+	uart0_fputs("2. xxxms? (scanning period in miliseconds as 'xxx', followed by 'ms' and finished by Enter, i.e.: 200ms, 400ms, 600ms\n");
+	uart0_fputs("3. h? (To insert new parameters and see this help again 'h' followed by Enter\n");
 	display_texto(1,"Set maximum angle",light_blue);
 	display_texto(10,"Welcome to automatic mode!",light_green);
 	display_texto(18,"Estado: ",gris);
 	display_numero(19,estado,gris);
 	}
 
-	
+	NVIC_SetPriorityGrouping(2);
+	config_EINT0();
+	config_EINT2();
+	config_pwm1();
+	config_encoder();
+	config_TIMER1(IR_period);
+	config_TIMER3();
 
-//2. xxxms? (scanning period in miliseconds as “xxx”, followed by
-//“ms” and finished by Enter, i.e.: 200ms, 400ms, 600ms)
-//3. h? (To insert new parameters and see this help again “h”
-//followed by Enter)
+
 
 
 	
