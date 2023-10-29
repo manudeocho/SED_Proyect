@@ -2,6 +2,7 @@
 #include "lcddriver.h"
 #include <stdio.h>
 #include <string.h>
+#include "uart.h"
 
 //ENCODER:
 //SW -> P2.10
@@ -25,6 +26,8 @@ uint8_t MAX = 180;
 uint8_t mode = 0; // 0->Manual 1->Automatic
 uint8_t estado = 0;
 uint32_t grados = 0;
+
+char rx_msg[128];
 
 char buffer[25];
 				
@@ -63,8 +66,10 @@ void config_encoder(void){
 	}
 
 void config_TIMER1(){
+		uint16_t IR_temp = 500;
+		
 		LPC_SC->PCONP |= 1 << 2; 					// Power up Timer1
-		LPC_TIM1->MR0 = (Fpclk/2)-1;			// 25e6/2 para interrumpir cada medio segundo
+		LPC_TIM1->MR0 = (Fpclk*(IR_temp*0.001))-1;			// 25e6/2 para interrumpir cada IR_temp ms
 		LPC_TIM1->MCR |= 1 << 0;					// Interrupt on Match 0 
 		LPC_TIM1->MCR |= 1 << 1; 					// Reset on Match 0
 		NVIC_EnableIRQ(TIMER1_IRQn); 
@@ -199,6 +204,9 @@ void TIMER1_IRQHandler(){
 				estado = 2; //Estado en el que el encoder mide
 				display_texto(10,"Welcome to manual mode!",light_green);
 				display_texto(1,"Set the angle",light_blue);
+				uart0_fputs("You are in Manual Mode:\n\r");
+				uart0_fputs("1. Turn the encoder (left-right) to position the measurement system.\n\r");
+				uart0_fputs("2. Push the encoder button to start/stop measurements.\n\r");
 				break; 
 					
 			case 2:
@@ -283,8 +291,15 @@ void TIMER1_IRQHandler(){
 	
 int main(void)
 {
+	int ret;
+	
 	//Config mode
 	mode = 1^(((1<<11)&(LPC_GPIO2->FIOPIN))>>11); //if P2.11 is pushed -> mode = 1;
+	
+	ret = uart0_init(9600);
+	if(ret < 0) {
+    return -1;
+  }
 	
 	lcdInitDisplay();
   fillScreen(BLACK);
@@ -297,6 +312,9 @@ int main(void)
 	config_TIMER3();
 	if(mode == 0){
 	estado = 1;
+	uart0_fputs("Bienvenido\n\r");
+	uart0_fputs("Push for manual mode\n\r");
+	uart0_fputs("Reset + KEY1 for automatic\n\r");
 	display_texto(1,"Welcome to the proyect of",light_green);
 	display_texto(2,"DIGITAL ELECTRONIC SYSTEMS",light_green);
 	display_texto(4,"Push for manual mode",light_blue);
@@ -309,6 +327,12 @@ int main(void)
 	}
 	else{
 	estado = 10;
+	uart0_fputs("You are in Automatic Mode.\n 1. xxg? (turning resolution in degrees as 'xx', followed by 'g' and finished by Enter, i.e.: 10g, 15g, 20g\n");
+	while(1){
+		uart0_gets(rx_msg);
+		uart0_puts(rx_msg);
+	}
+	
 	display_texto(1,"Set maximum angle",light_blue);
 	display_texto(10,"Welcome to automatic mode!",light_green);
 	display_texto(18,"Estado: ",gris);
@@ -316,6 +340,12 @@ int main(void)
 	}
 
 	
+
+//2. xxxms? (scanning period in miliseconds as “xxx”, followed by
+//“ms” and finished by Enter, i.e.: 200ms, 400ms, 600ms)
+//3. h? (To insert new parameters and see this help again “h”
+//followed by Enter)
+
 
 	
 	while(1);
@@ -355,4 +385,7 @@ void random_comands(void){
 			drawString(10,100, buffer, BLUE, YELLOW, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100 
 			for(retardo=0;retardo<10000000;retardo++);
 		}
+		
+
+	while(1);
 	}*/
