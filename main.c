@@ -19,6 +19,7 @@
 #define orange 0xFB00
 #define gris 0x39C5
 #define light_green 0x0730
+#define purple 0xF81F
 
 uint8_t MIN = 0;
 uint8_t MAX = 180;
@@ -35,11 +36,15 @@ char buffer[25];
   
 
 void config_EINT0(void){
+	
 		LPC_PINCON->PINSEL4|=(0x01 << 20); //asocia la interrupcion al pin del bot?n P2.10
 		LPC_SC -> EXTMODE |= (1 << 0); // rising edge
 		//LPC_SC -> EXTPOLAR |= (1 << 0); //flanco de subida
 		NVIC->ISER[0] |= (1 << 18); //Enable interrupcion
 		NVIC_SetPriority( EINT0_IRQn, 0);
+
+		//LPC_QEI->QEICON = 1; // Reset position counter
+		//LPC_QEI->FILTER = (uint32_t)(40e3);
 	}
 
 void config_EINT2(void){
@@ -131,7 +136,7 @@ void set_servo(float Grados){
 	}
 	else{
 		display_texto(16,"Error: not valid degree",RED);
-		display_texto(17, "Push again please", orange);
+		display_texto(17, "Set another angle please", orange);
 	}
 }	
 
@@ -142,10 +147,11 @@ void TIMER1_IRQHandler(){
 		float temperature = 0;
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
-		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupción
+		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupci�n
 		
-		if (estado == 3){
-
+		if (estado == 2){
+			grados = 5*LPC_QEI->QEIPOS;
+			set_servo(grados); //if click -> QUEIPOS= QUEIPOS +2
 		}
 		if(estado == 10)direccion = 0;
 			
@@ -168,22 +174,25 @@ void TIMER1_IRQHandler(){
 			distancia = get_IR_distance(); //saca la distancia
 			temperature = get_temperature(); 
 			
-			//display_texto(4, "Distance:", light_blue);
-			sprintf(buffer,"%s","Distance:");
-			drawString(85,4*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			//display_numero(5, distancia, light_blue);
-			sprintf(buffer,"        ");
-			drawString(55,5*16, buffer, RED, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			sprintf(buffer,"%f",distancia);
-			drawString(55,5*16, buffer, RED, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			//display_texto(7, "Temperature:", light_blue);
-			sprintf(buffer,"%s","Temperature:");
-			drawString(75,7*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			//display_numero(8, temperatura, light_blue);
-			sprintf(buffer,"        ");
-			drawString(55,8*16, buffer, RED, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			sprintf(buffer,"%f",temperature);
-			drawString(55,8*16, buffer, RED, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			
+			display_texto(4, "Distance:", purple);
+			//sprintf(buffer,"%s","Distance:");
+			//drawString(85,4*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			display_numero(5, distancia, purple);
+			//sprintf(buffer,"      ");
+			//drawString(55,5*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			//sprintf(buffer,"%f",distancia);
+			//drawString(55,5*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			display_texto(7, "Temperature:", purple);
+			//sprintf(buffer,"%s","Temperature:");
+			//drawString(75,7*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			display_numero(8, temperature, purple);
+			//sprintf(buffer,"      ");
+			//drawString(55,8*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			//sprintf(buffer,"%f",temperature);
+			//drawString(55,8*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			
+
 			
 			uart0_fputs("Distance:\n");
 		}
@@ -195,7 +204,7 @@ void TIMER1_IRQHandler(){
 	
 	void TIMER3_IRQHandler(){
 		
-		LPC_TIM3->IR |= 1 << 0; // Borrar flag de interrupción
+		LPC_TIM3->IR |= 1 << 0; // Borrar flag de interrupci�n
 		NVIC_DisableIRQ(TIMER3_IRQn); //Desable timer 3
 		NVIC->ISER[0] |= (1 << 18); //Enable interrupcion del EINT0
 		
@@ -226,8 +235,6 @@ void TIMER1_IRQHandler(){
 			case 2:
 				//activar timer
 				display_borrar(10,12);
-				grados = 5*LPC_QEI->QEIPOS;
-				set_servo(grados); //if click -> QUEIPOS= QUEIPOS +2
 				LPC_SC->PCONP = LPC_SC->PCONP & 0xFFFBFFFF; //desactivar encoder
 				estado = 3;
 				display_texto(1,"Measures:",light_blue);
