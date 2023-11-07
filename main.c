@@ -29,12 +29,27 @@ uint8_t mode = 0; // 0->Manual 1->Automatic
 uint8_t estado = 0;
 uint32_t grados = 0;
 
+float distancia = 0;
+
 char rx_msg[128];
 
 char buffer[25];
 				
   
-
+void config_ADC(void){
+	LPC_SC->PCONP|= (1<<12);					// POwer ON
+	LPC_PINCON->PINSEL1|= (1<<14);  	// ADC input= P0.23 (AD0.0)
+	LPC_PINCON->PINMODE1|= (2<<14); 	// Deshabilita pullup/pulldown
+	LPC_SC->PCLKSEL0|= (0x00<<8); 		// CCLK/4 (Fpclk después del reset) (100 Mhz/4 = 25Mhz)
+	LPC_ADC->ADCR= (0x01<<0)|		  	  // Canal 0
+								 (0x01<<8)|		  	  // CLKDIV=1   (Fclk_ADC=25Mhz /(1+1)= 12.5Mhz)
+								 (0x01<<21)|			 	// PDN=1
+								 (7<<24);				    // Inicio de conversión con el Match 1 del Timer 1
+	
+	LPC_ADC->ADINTEN= (1<<0)|(1<<8);	// Hab. interrupción fin de conversión canal 0
+	NVIC_EnableIRQ(ADC_IRQn);					// ? 
+	NVIC_SetPriority(ADC_IRQn,1);			// ?      
+}
 void config_EINT0(void){
 	
 		LPC_PINCON->PINSEL4|=(0x01 << 20); //asocia la interrupcion al pin del bot?n P2.10
@@ -74,11 +89,13 @@ void config_encoder(void){
 void config_TIMER1(uint16_t IR_Period){
 		LPC_SC->PCONP |= 1 << 2; 					// Power up Timer1
 		LPC_TIM1->MR0 = (Fpclk*(IR_Period*0.001))-1;			// 25e6/2 para interrumpir cada IR_temp ms
-		LPC_TIM1->MCR |= 1 << 0;					// Interrupt on Match 0 
+		LPC_TIM1->MR1 = (Fpclk*(IR_Period*0.001))/2 -1;
+		LPC_TIM1->MCR |= (1 << 0);				// Interrupt on Match 0 and Match 1
 		LPC_TIM1->MCR |= 1 << 1; 					// Reset on Match 0
 		NVIC_EnableIRQ(TIMER1_IRQn); 
+		LPC_TIM1->EMR = 0x00C0;   				// Toggle External Match 1
 		LPC_TIM1->TCR |= 1 << 0; 					// Start timer
-		NVIC_SetPriority( TIMER1_IRQn, 2);
+		NVIC_SetPriority( TIMER1_IRQn, 0); //2
 	}
 
 void config_TIMER3(){
@@ -91,10 +108,6 @@ void config_TIMER3(){
 		NVIC_SetPriority( TIMER3_IRQn, 2);
 	}
 
-float get_IR_distance(){
-		float Distancia = 0;
-		return Distancia;
-	}
 
 uint16_t get_temperature(){
 		uint16_t Temp = 0;
@@ -143,11 +156,10 @@ void set_servo(float Grados){
 
 void TIMER1_IRQHandler(){
 		
-		float distancia = 0;
 		float temperature = 0;
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
-		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupci�n
+		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupción
 		
 		if (estado == 2){
 			grados = 5*LPC_QEI->QEIPOS;
@@ -171,18 +183,17 @@ void TIMER1_IRQHandler(){
 		}
 		
 		if(estado == 3 || estado == 12){
-			distancia = get_IR_distance(); //saca la distancia
 			temperature = get_temperature(); 
 			
 			
 			display_texto(4, "Distance:", purple);
 			//sprintf(buffer,"%s","Distance:");
 			//drawString(85,4*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			display_numero(5, distancia, purple);
-			//sprintf(buffer,"      ");
-			//drawString(55,5*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			//sprintf(buffer,"%f",distancia);
-			//drawString(55,5*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			//display_numero(5, distancia, purple);
+			sprintf(buffer,"      ");
+			drawString(55,5*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			sprintf(buffer,"%f",distancia);
+			drawString(55,5*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
 			display_texto(7, "Temperature:", purple);
 			//sprintf(buffer,"%s","Temperature:");
 			//drawString(75,7*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
@@ -204,7 +215,7 @@ void TIMER1_IRQHandler(){
 	
 	void TIMER3_IRQHandler(){
 		
-		LPC_TIM3->IR |= 1 << 0; // Borrar flag de interrupci�n
+		LPC_TIM3->IR |= 1 << 0; // Borrar flag de interrupción
 		NVIC_DisableIRQ(TIMER3_IRQn); //Desable timer 3
 		NVIC->ISER[0] |= (1 << 18); //Enable interrupcion del EINT0
 		
@@ -215,10 +226,10 @@ void TIMER1_IRQHandler(){
 		
 		LPC_SC->EXTINT|=1;//limpiar la flag
 		
-		NVIC_DisableIRQ(EINT0_IRQn); //Deshabilita EINT0
-		NVIC->ISER[0] |= (1<<4); //Habilitar timer 3
-		LPC_TIM3->TCR |= (1 << 1); // Reset timer
-		LPC_TIM3->TCR &= ~(1 << 1); // Start timer
+		//NVIC_DisableIRQ(EINT0_IRQn); //Deshabilita EINT0
+		//NVIC->ISER[0] |= (1<<4); //Habilitar timer 3
+		//LPC_TIM3->TCR |= (1 << 1); // Reset timer
+		//LPC_TIM3->TCR &= ~(1 << 1); // Start timer
 		
 		switch(estado){
 			
@@ -310,6 +321,31 @@ void TIMER1_IRQHandler(){
 		}
 	}
 	
+void ADC_IRQHandler(void)
+{
+	float voltios;
+	float idistance;
+	voltios= (float) ((LPC_ADC->ADGDR >>4)&0xFFF)*3.3/4095;	// se borra automat. el flag DONE al leer ADCGDR
+	voltios = 1.75;
+	if (voltios < 2.75 && voltios >= 2.5){
+		idistance = 0.05 + ((voltios-2.5)/(2.75 -2.5))*(0.066-0.05);
+		idistance = 1;
+	}
+	else if (voltios < 2.5 && voltios >= 2){
+		idistance = 0.03333 + ((voltios-2)/(2.5 -2))*(0.05-0.033);
+		idistance = 1/2;
+	}
+	else if (voltios < 2 && voltios >= 0.4){
+		idistance = 0.025 + ((voltios-1.5)/(2 -1.5))*(0.033-0.025);
+		idistance = 1/3;
+	}
+	else{
+		idistance = 1/4;
+	}
+	
+	distancia = idistance;
+}
+
 int main(void)
 {
 	int ret;
@@ -336,7 +372,7 @@ int main(void)
 	display_texto(4,"Push for manual mode",light_blue);
 	display_texto(5,"Reset + KEY1 for automatic",light_blue);
 	display_texto(6,"mode",light_blue);
-	display_texto(8,"By Josilda Soarez and",orange);
+	display_texto(8,"By Josilda Soares and",orange);
 	display_texto(9,"Manuel Sanchez",orange);
 	display_texto(18,"Estado: ",gris);
 	display_numero(19,estado,gris);
@@ -353,6 +389,7 @@ int main(void)
 	}
 
 	NVIC_SetPriorityGrouping(2);
+	config_ADC();
 	config_EINT0();
 	config_EINT2();
 	config_pwm1();
