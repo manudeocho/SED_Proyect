@@ -40,13 +40,13 @@ void config_ADC(void){
 	LPC_SC->PCONP|= (1<<12);					// POwer ON
 	LPC_PINCON->PINSEL1|= (1<<14);  	// ADC input= P0.23 (AD0.0)
 	LPC_PINCON->PINMODE1|= (2<<14); 	// Deshabilita pullup/pulldown
-	LPC_SC->PCLKSEL0|= (0x00<<8); 		// CCLK/4 (Fpclk después del reset) (100 Mhz/4 = 25Mhz)
+	LPC_SC->PCLKSEL0|= (0x00<<8); 		// CCLK/4 (Fpclk despu�s del reset) (100 Mhz/4 = 25Mhz)
 	LPC_ADC->ADCR= (0x01<<0)|		  	  // Canal 0
 								 (0x01<<8)|		  	  // CLKDIV=1   (Fclk_ADC=25Mhz /(1+1)= 12.5Mhz)
 								 (0x01<<21)|			 	// PDN=1
-								 (7<<24);				    // Inicio de conversión con el Match 1 del Timer 1
+								 (7<<24);				    // Inicio de conversi�n con el Match 1 del Timer 1
 	
-	LPC_ADC->ADINTEN= (1<<0)|(1<<8);	// Hab. interrupción fin de conversión canal 0
+	LPC_ADC->ADINTEN= (1<<0)|(1<<8);	// Hab. interrupci�n fin de conversi�n canal 0
 	NVIC_EnableIRQ(ADC_IRQn);					// ? 
 	NVIC_SetPriority(ADC_IRQn,1);			// ?      
 }
@@ -90,7 +90,7 @@ void config_TIMER1(uint16_t IR_Period){
 		LPC_SC->PCONP |= 1 << 2; 					// Power up Timer1
 		LPC_TIM1->MR0 = (Fpclk*(IR_Period*0.001))-1;			// 25e6/2 para interrumpir cada IR_temp ms
 		LPC_TIM1->MR1 = (Fpclk*(IR_Period*0.001))/2 -1;
-		LPC_TIM1->MCR |= (1 << 0);				// Interrupt on Match 0 and Match 1
+		LPC_TIM1->MCR |= (1 << 0);				// Interrupt on Match 0 
 		LPC_TIM1->MCR |= 1 << 1; 					// Reset on Match 0
 		NVIC_EnableIRQ(TIMER1_IRQn); 
 		LPC_TIM1->EMR = 0x00C0;   				// Toggle External Match 1
@@ -159,7 +159,7 @@ void TIMER1_IRQHandler(){
 		float temperature = 0;
 		static uint8_t direccion = 0; // 0->Gira derecha  1->Gira izquierda
 	
-		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupción
+		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupci�n
 		
 		if (estado == 2){
 			grados = 5*LPC_QEI->QEIPOS;
@@ -189,11 +189,12 @@ void TIMER1_IRQHandler(){
 			display_texto(4, "Distance:", purple);
 			//sprintf(buffer,"%s","Distance:");
 			//drawString(85,4*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			//display_numero(5, distancia, purple);
-			sprintf(buffer,"      ");
-			drawString(55,5*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			sprintf(buffer,"%f",distancia);
-			drawString(55,5*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			display_numero(5, distancia, purple);
+			if(distancia > 255){ display_texto(5, "Fuera de rango", purple);	}
+			//sprintf(buffer,"      ");
+			//drawString(55,5*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			//sprintf(buffer,"%f",distancia);
+			//drawString(55,5*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
 			display_texto(7, "Temperature:", purple);
 			//sprintf(buffer,"%s","Temperature:");
 			//drawString(75,7*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
@@ -215,7 +216,7 @@ void TIMER1_IRQHandler(){
 	
 	void TIMER3_IRQHandler(){
 		
-		LPC_TIM3->IR |= 1 << 0; // Borrar flag de interrupción
+		LPC_TIM3->IR |= 1 << 0; // Borrar flag de interrupci�n
 		NVIC_DisableIRQ(TIMER3_IRQn); //Desable timer 3
 		NVIC->ISER[0] |= (1 << 18); //Enable interrupcion del EINT0
 		
@@ -325,25 +326,22 @@ void ADC_IRQHandler(void)
 {
 	float voltios;
 	float idistance;
+	
 	voltios= (float) ((LPC_ADC->ADGDR >>4)&0xFFF)*3.3/4095;	// se borra automat. el flag DONE al leer ADCGDR
-	voltios = 1.75;
-	if (voltios < 2.75 && voltios >= 2.5){
+	
+	if (voltios <= 2.75 && voltios >= 2.5){
 		idistance = 0.05 + ((voltios-2.5)/(2.75 -2.5))*(0.066-0.05);
-		idistance = 1;
 	}
 	else if (voltios < 2.5 && voltios >= 2){
 		idistance = 0.03333 + ((voltios-2)/(2.5 -2))*(0.05-0.033);
-		idistance = 1/2;
 	}
 	else if (voltios < 2 && voltios >= 0.4){
 		idistance = 0.025 + ((voltios-1.5)/(2 -1.5))*(0.033-0.025);
-		idistance = 1/3;
 	}
 	else{
-		idistance = 1/4;
+		idistance = 0;
 	}
-	
-	distancia = idistance;
+	distancia = 1/idistance;
 }
 
 int main(void)
