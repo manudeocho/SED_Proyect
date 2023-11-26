@@ -1,4 +1,4 @@
-#include <LPC17xx.H>
+	#include <LPC17xx.H>
 #include "lcddriver.h"
 #include <stdio.h>
 #include <string.h>
@@ -40,6 +40,7 @@ uint16_t muestras[N_muestras];
 uint16_t f_out = 100;
 
 float distancia = 0;
+float temperature = 0;
 
 char rx_msg[128];
 
@@ -207,12 +208,11 @@ void set_servo(float Grados){
 	if(Grados < 180+1){
     LPC_PWM1->MR1=(Fpclk*0.5e-3 + Fpclk*(2.4-0.5)*1e-3*Grados/180); //Var?a en funci?n de los grados el Duty cicle desde 0.5/15 a 2.5/15
 		LPC_PWM1->LER|=(1<<1)|(1<<0); //Enable el Match 0 y el Match 1 (MR0 and MR1)
-		//display_texto(16,"Degrees:",orange);
-		//display_numero(17, Grados, orange);
+		display_token[5] = 1; //Distancia
+		
 	}
 	else{
-		//display_texto(16,"Error: not valid degree",RED);
-		//display_texto(17, "Set another angle please", orange);
+		display_token[6] = 1; //Angulo no válido
 	}
 }	
 
@@ -248,32 +248,13 @@ void TIMER1_IRQHandler(){
 		if(estado == 3 || estado == 12){
 			temperature = get_temperature(); 
 			display_token[4] = 1; //Distancia
-			
-			///display_texto(4, "Distance:", purple);
-			//sprintf(buffer,"%s","Distance:");
-			//drawString(85,4*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			//display_numero(5, distancia, purple);
-			///if(distancia > 255){ display_texto(5, "Fuera de rango", purple);	}
-			//sprintf(buffer,"      ");
-			//drawString(55,5*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			//sprintf(buffer,"%f",distancia);
-			//drawString(55,5*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			///display_texto(7, "Temperature:", purple);
-			//sprintf(buffer,"%s","Temperature:");
-			//drawString(75,7*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			///display_numero(8, temperature, purple);
-			//sprintf(buffer,"      ");
-			//drawString(55,8*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			//sprintf(buffer,"%f",temperature);
-			//drawString(55,8*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-			
-
-			
 			//uart0_fputs("Distance:\n");
+			NVIC_EnableIRQ(TIMER2_IRQn);			//  Habilita NVIC
 		}
-		else if(estado == 1);
+		else if(estado == 1) NVIC_DisableIRQ(TIMER2_IRQn);			//  Habilita NVIC
 		else{
 			display_token[1] = 1;	
+			NVIC_DisableIRQ(TIMER2_IRQn);			//  Habilita NVIC
 		}
 	}
 	
@@ -298,7 +279,6 @@ void TIMER1_IRQHandler(){
 		switch(estado){
 			
 			case 1:
-				//display_borrar(0,10);
 				estado = 2; //Estado en el que el encoder mide
 				display_token[2] = 1; //Set the angle + INFO
 				break; 
@@ -316,41 +296,27 @@ void TIMER1_IRQHandler(){
 				LPC_SC->PCONP|=(1<<18); //activar encoder
 				estado = 2;
 				display_token[7] = 1; //Set the angle
-				//display_borrar(2,2);
-				//display_texto(1,"Set the angle",light_blue);
 				break;
 			
 			case 10:
 				MAX = 5*LPC_QEI->QEIPOS;
-				//display_texto(12,"Maximum angle:",YELLOW);
-				//display_numero(13,MAX,YELLOW);
 				set_servo(MAX);
 				estado = 11;
-				display_token[11] = 1; //Maximum
-				//display_borrar(0,2);
-				//display_borrar(10,11);
-				//display_texto(1,"Set minimum angle",light_blue);
+				display_token[16] = 1; //Maximum
 				break;
 			
 			case 11: // 11->12 or 15
 				MIN = 5*LPC_QEI->QEIPOS;
 				display_token[12] = 1; //Minimum
-				//display_texto(14,"Minimum angle:",YELLOW);
-				//display_numero(15,MIN,YELLOW);
 				set_servo(MIN);
 				grados = MIN;
 				if(MIN>MAX || MIN==MAX){ //11->15
 					estado = 10; //15->10
 					display_token[10] = 1; //Maximum again + ERROR MESAGE
-					//display_texto(10,"Error: Min not less than max",RED);
-					//display_texto(1,"Set angle max again please",light_blue);
 				}
 				else{
 					estado = 12; //11->12
 					display_token[15] = 1; //Measures
-					//display_texto(1,"Measures:",light_blue);
-					//display_texto(1,"Push to stop everything",light_blue);
-					//display_texto(10,"KEY2 to set angles again",light_green);
 				}
 				break;
 				
@@ -358,23 +324,15 @@ void TIMER1_IRQHandler(){
 				//activar timer
 				estado = 13;
 				display_token[13] = 1; //Erase measures
-				//display_borrar(2,2);
-				//display_borrar(10,11);
-				//display_texto(1,"Push to continue",light_blue);
 				break;
 			
 			case 13:
 				//desactivar timer
 				estado = 12;
 				display_token[15] = 1; //Measures
-				//display_texto(1,"Measures:",light_blue);
-				//display_texto(1,"Push to stop everything",light_blue);
-				//display_texto(10,"KEY2 to set angles again",light_green);
 				break;
 			}
 			display_token[18]=1; //State info!!!
-			//display_texto(18,"Estado: ",gris);
-			display_numero(19,estado,gris);
 		
 	}
 	
@@ -384,8 +342,6 @@ void TIMER1_IRQHandler(){
 		if(estado == 12){
 			estado = 10;
 			display_token[9] = 1; //Maximum again
-			//display_borrar(10,11);
-			//display_texto(1,"Decide maximum angle again",light_blue);
 		}
 	}
 	
@@ -475,7 +431,6 @@ int main(void)
 
 	
 while(1){
-
 for(display_token_pos=0;display_token_pos<=20;display_token_pos++){
 	if(display_token[display_token_pos] != 0) break;
 }
@@ -487,6 +442,7 @@ switch(display_token_pos){
 	case 2:
 		display_texto(10,"Welcome to manual mode!",light_green);
 		display_texto(1,"Set the angle",light_blue);
+		display_texto(2,"Then press the buttom",light_blue);
 		uart0_fputs("You are in Manual Mode:\n\r");
 		uart0_fputs("1. Turn the encoder (left-right) to position the measurement system.\n\r");
 		uart0_fputs("2. Push the encoder button to start/stop measurements.\n\r");
@@ -497,6 +453,85 @@ switch(display_token_pos){
 		display_texto(2,"Push to stop",light_blue);
 		display_token[display_token_pos] = 0;
 		break;
+	case 4:	
+		display_texto(4, "Distance:", purple);
+			//sprintf(buffer,"%s","Distance:");
+			//drawString(85,4*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+		display_numero(5, distancia, purple);
+		if(distancia > 255){ display_texto(5, "Fuera de rango", purple);	}
+			//sprintf(buffer,"      ");
+			//drawString(55,5*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			//sprintf(buffer,"%f",distancia);
+			//drawString(55,5*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+		display_texto(7, "Temperature:", purple);
+			//sprintf(buffer,"%s","Temperature:");
+			//drawString(75,7*16, buffer, orange, BLACK, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+		display_numero(8, temperature, purple);
+			//sprintf(buffer,"      ");
+			//drawString(55,8*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+			//sprintf(buffer,"%f",temperature);
+			//drawString(55,8*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
+				display_token[display_token_pos] = 0;
+				break;
+	case 5:
+		display_texto(16,"Degrees:",orange);
+		display_numero(17, grados, orange);
+			display_token[display_token_pos] = 0;
+				break;
+	case 6:
+		display_texto(16,"Error: not valid degree",RED);
+		display_texto(17, "Set another angle please", orange);
+			display_token[display_token_pos] = 0;
+				break;
+	case 7:
+		display_borrar(2,2);
+		display_texto(1,"Set the angle",light_blue);
+			display_token[display_token_pos] = 0;
+				break;
+		case 9:
+		display_borrar(10,11);
+		display_texto(1,"Decide maximum angle again",light_blue);
+				display_token[display_token_pos] = 0;
+				break;
+	case 10:
+		display_texto(10,"Error: Min not less than max",RED);
+		display_texto(1,"Set angle max again please",light_blue);
+			display_token[display_token_pos] = 0;
+				break;
+	case 11:
+			display_borrar(0,2);
+			display_borrar(10,11);
+			display_texto(1,"Set minimum angle",light_blue);
+			display_token[display_token_pos] = 0;
+				break;
+	case 12:
+		display_texto(14,"Minimum angle:",YELLOW);
+		display_numero(15,MIN,YELLOW);
+			display_token[display_token_pos] = 0;
+				break;
+	case 13:
+		display_borrar(2,2);
+		display_borrar(10,11);
+		display_texto(1,"Push to continue",light_blue);
+			display_token[display_token_pos] = 0;
+				break;
+	case 15:
+		display_texto(1,"Measures:",light_blue);
+		display_texto(1,"Push to stop everything",light_blue);
+		display_texto(10,"KEY2 to set angles again",light_green);
+			display_token[display_token_pos] = 0;
+				break;
+	case 16:
+		display_texto(12,"Maximum angle:",YELLOW);
+		display_numero(13,MAX,YELLOW);
+			display_token[display_token_pos] = 0;
+				break;
+	case 18:
+		display_texto(18,"Estado: ",gris);
+		display_numero(19,estado,gris);
+			display_token[display_token_pos] = 0;
+				break;
+
 }
 
 }
