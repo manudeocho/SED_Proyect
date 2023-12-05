@@ -1,4 +1,4 @@
-	#include <LPC17xx.H>
+#include <LPC17xx.H>
 #include "lcddriver.h"
 #include <stdio.h>
 #include <string.h>
@@ -30,7 +30,7 @@ uint8_t turn_res = 10;
 uint8_t mode = 0; // 0->Manual 1->Automatic
 uint8_t estado = 0;
 uint8_t display_token[20] = {0};
-uint32_t grados = 0;
+float grados = 0;
 
 #define pi 3.14159
 #define F_out 1000  // 100 Hz	
@@ -42,9 +42,12 @@ uint16_t f_out = 100;
 float distancia = 0;
 float temperature = 0;
 
-char rx_msg[128];
-
-char buffer[25];
+char buffer[30];		// Buffer de recepción de 30 caracteres
+char *ptr_rx;			// puntero de recepción
+char rx_completa;		// Flag de recepción de cadena que se activa a "1" al recibir la tecla return CR(ASCII=13)
+char *ptr_tx;			// puntero de transmisión
+char tx_completa;		// Flag de transmisión de cadena que se activa al transmitir el caracter null (fin de cadena)
+char fin=0;
 				
  
 void config_ADC(void){
@@ -225,7 +228,7 @@ void TIMER1_IRQHandler(){
 		LPC_TIM1->IR |= 1 << 0; // Borrar flag de interrupci?n
 		
 		if (estado == 2){
-			grados = 5*LPC_QEI->QEIPOS;
+			grados = ((float)turn_res / 2)*LPC_QEI->QEIPOS;
 			set_servo(grados); //if click -> QUEIPOS= QUEIPOS +2
 		}
 		if(estado == 10)direccion = 0;
@@ -299,14 +302,15 @@ void TIMER1_IRQHandler(){
 				break;
 			
 			case 10:
-				MAX = 5*LPC_QEI->QEIPOS;
+				MAX = ((float)turn_res / 2)*LPC_QEI->QEIPOS;
 				set_servo(MAX);
 				estado = 11;
 				display_token[16] = 1; //Maximum
+				display_token[11] = 1;
 				break;
 			
 			case 11: // 11->12 or 15
-				MIN = 5*LPC_QEI->QEIPOS;
+				MIN = ((float)turn_res / 2)*LPC_QEI->QEIPOS;
 				display_token[12] = 1; //Minimum
 				set_servo(MIN);
 				grados = MIN;
@@ -321,13 +325,11 @@ void TIMER1_IRQHandler(){
 				break;
 				
 			case 12:
-				//activar timer
 				estado = 13;
 				display_token[13] = 1; //Erase measures
 				break;
 			
 			case 13:
-				//desactivar timer
 				estado = 12;
 				display_token[15] = 1; //Measures
 				break;
@@ -362,36 +364,82 @@ void ADC_IRQHandler(void)
 		idistance = 0.025 + ((voltios-1.5)/(2 -1.5))*(0.033-0.025);
 	}
 	else{
-		idistance = 0;
+		idistance = 1;
 	}
 	distancia = 1/idistance;
-	f_out = 220*pow(2, distancia / 120); 
+	if(distancia != 1)f_out = 220*pow(2, distancia / 120); 
 }
 
+uint16_t ask_user(){
+	
+	uint16_t IR_Period = 500;
+	tx_cadena_UART0("1. xxg? (turning resolution in degrees as 'xx', followed by 'g' and finished by Enter, i.e.: 10g, 15g, 20g\n");
+	do{
+		if(rx_completa){					 	
+			rx_completa=0; 				
+			if ((strcmp (buffer, "\n10g\r") == 0) || (strcmp (buffer, "10g\r") == 0)){
+					turn_res = 10; 
+					fin=1;
+			}
+			else if ((strcmp (buffer, "\n15g\r") == 0) || (strcmp (buffer, "15g\r") == 0)){
+				turn_res = 15; 
+				fin=1;
+}
+			else if ((strcmp (buffer, "\n20g\r") == 0) || (strcmp (buffer, "20g\r") == 0)){
+				turn_res = 20; 
+				fin=1;}
+			else tx_cadena_UART0("Wrong command.\n Please, text it again.\n\r");
+			 }
+		}while(fin==0);
+	fin = 0;	
+	sprintf(buffer, "%d degrees selected\n2. xxxms? (scanning period in miliseconds as 'xxx', followed by 'ms' and finished by Enter, i.e.: 200ms, 400ms, 600ms.\n",turn_res);
+	tx_cadena_UART0(buffer); 
 
+	do{
+		if(rx_completa){					 	
+			rx_completa=0; 				
+			if (strcmp (buffer, "\n200ms\r") == 0){
+				IR_Period = 200;
+				fin=1;
+			}
+			else if (strcmp (buffer, "\n400ms\r") == 0){
+				IR_Period = 400;
+				fin=1;
+}
+			else if (strcmp (buffer, "\n600ms\r") == 0){
+				IR_Period = 600;
+				fin=1;}
+			else tx_cadena_UART0("Wrong command.\n Please, text it again.\n\r");
+			 }
+		}while(fin==0);
+	fin = 0;	
+
+	sprintf(buffer, "%d ms selected\n3. h? (To insert new parameters and see this help again 'h' followed by Enter\n",IR_Period);
+	tx_cadena_UART0(buffer); 
+
+	return IR_Period;
+}
 int main(void)
 {
-	int ret;
 	uint16_t IR_period = 500;
 	uint8_t display_token_pos = 0;
-	uint8_t i;
+	uint16_t i;
 	
 	//Config mode
 	mode = 1^(((1<<11)&(LPC_GPIO2->FIOPIN))>>11); //if P2.11 is pushed -> mode = 1;
 	
-	ret = uart0_init(9600);
-	if(ret < 0) {
-    return -1;
-  }
-	
+		LPC_GPIO1->FIODIR |= (1<<18);	 // P1.18 definido como salida  
+		LPC_GPIO1->FIOCLR |= (1<<18);	 // P1.18 apagado 
+		ptr_rx=buffer;	                // inicializa el puntero de recepción al comienzo del buffer
+		uart0_init(9600);							 // configura la UART0 a 9600 baudios, 8 bits, 1 bit stop
+
 	lcdInitDisplay();
   fillScreen(BLACK);
+	tx_cadena_UART0("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 	
 	if(mode == 0){
 	estado = 1;
-	uart0_fputs("Welcome!!!\n");
-	uart0_fputs("Push for manual mode\n");
-	uart0_fputs("Reset + KEY1 for automatic\n");
+	tx_cadena_UART0("Welcome!!!\nPush for manual mode\nReset + KEY1 for automatic\n\n\nBut first the program need some parameters:\n");
 	display_texto(1,"Welcome to the proyect of",light_green);
 	display_texto(2,"DIGITAL ELECTRONIC SYSTEMS",light_green);
 	display_texto(4,"Push for manual mode",light_blue);
@@ -404,15 +452,28 @@ int main(void)
 	}
 	else{
 	estado = 10;
-	uart0_fputs("You are in Automatic Mode:\n 1. xxg? (turning resolution in degrees as 'xx', followed by 'g' and finished by Enter, i.e.: 10g, 15g, 20g\n");
-	uart0_fputs("2. xxxms? (scanning period in miliseconds as 'xxx', followed by 'ms' and finished by Enter, i.e.: 200ms, 400ms, 600ms\n");
-	uart0_fputs("3. h? (To insert new parameters and see this help again 'h' followed by Enter\n");
+	tx_cadena_UART0("You are in Automatic Mode:\n ");				
 	display_texto(1,"Set maximum angle",light_blue);
 	display_texto(10,"Welcome to automatic mode!",light_green);
 	display_texto(18,"Estado: ",gris);
 	display_numero(19,estado,gris);
 	}
-
+	
+	IR_period = ask_user();
+	
+	do{
+		if(rx_completa){					 	// Comprabamos la llegada de una cadena por RXD
+			rx_completa=0; 				// Borrar flag para otra recepción
+			if (strcmp (buffer, "\nh\r") == 0){
+				tx_cadena_UART0("Insert new parameters\n" ); 
+				ask_user();
+			}
+			fin=1;
+			 }
+		}while(fin==0);
+	fin = 0;	
+		
+	
 	NVIC_SetPriorityGrouping(2);
 	config_DAC();
 	config_TIMER2();
@@ -426,7 +487,7 @@ int main(void)
 	config_TIMER1(IR_period);
 	//config_TIMER3();
 
-
+	tx_cadena_UART0("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nConfig done... Iniciating program...\n\n\n"); 
 
 
 	
@@ -443,9 +504,7 @@ switch(display_token_pos){
 		display_texto(10,"Welcome to manual mode!",light_green);
 		display_texto(1,"Set the angle",light_blue);
 		display_texto(2,"Then press the buttom",light_blue);
-		uart0_fputs("You are in Manual Mode:\n\r");
-		uart0_fputs("1. Turn the encoder (left-right) to position the measurement system.\n\r");
-		uart0_fputs("2. Push the encoder button to start/stop measurements.\n\r");
+		tx_cadena_UART0("You are in Manual Mode:\n1. Turn the encoder (left-right) to position the measurement system.\n2. Push the encoder button to start/stop measurements.\n");
 		display_token[display_token_pos] = 0;
 		break;
 	case 3:
@@ -472,6 +531,7 @@ switch(display_token_pos){
 			//sprintf(buffer,"%f",temperature);
 			//drawString(55,8*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
 				display_token[display_token_pos] = 0;
+		//sprintf(buffer,"Distance: %f\nTemperature: %f",distancia,temperature);
 				break;
 	case 5:
 		display_texto(16,"Degrees:",orange);
@@ -533,41 +593,5 @@ switch(display_token_pos){
 				break;
 
 }
-
 }
 }
-
-
-
-
-
-
-
-
-
-/*
-void random_comands(void){
-
-//	drawChar(10, 100, 'A', RED, BLACK, SMALL);
-//	drawChar(30, 100, 'A', RED, BLACK, MEDIUM);
-//	drawChar(60, 100, 'A', RED, BLACK, LARGE);
-
-	drawString(10, 00, "hello world!", CYAN, BLACK, SMALL);
-//	drawString(10, 240, "hello world!", YELLOW, BLACK, MEDIUM);
-//	drawString(10, 280, "hello world!", BLACK, WHITE, LARGE);
-//	drawCircle(100, 50, 25, BLUE); //x0, y0, radio, color
-//	fillCircle(100, 85, 25, MAGENTA);
-//	fillRect(100, 63, 70, 20, YELLOW); //x0, y0, ancho, alto, color
-	
-	for(retardo=0;retardo<1000000;retardo++);
-
-	for(contador=0;contador<10;contador++)
-		{
-			sprintf(buffer,"Contando... %d",contador);
-			drawString(10,100, buffer, BLUE, YELLOW, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100 
-			for(retardo=0;retardo<10000000;retardo++);
-		}
-		
-
-	while(1);
-	}*/
