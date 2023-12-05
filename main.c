@@ -435,11 +435,11 @@ int main(void)
 
 	lcdInitDisplay();
   fillScreen(BLACK);
-	tx_cadena_UART0("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+
 	
 	if(mode == 0){
 	estado = 1;
-	tx_cadena_UART0("Welcome!!!\nPush for manual mode\nReset + KEY1 for automatic\n\n\nBut first the program need some parameters:\n");
+	tx_cadena_UART0("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nWelcome!!!\nPush for manual mode\nReset + KEY1 for automatic\n\n\nBut first the program need some parameters:\n");
 	display_texto(1,"Welcome to the proyect of",light_green);
 	display_texto(2,"DIGITAL ELECTRONIC SYSTEMS",light_green);
 	display_texto(4,"Push for manual mode",light_blue);
@@ -452,14 +452,14 @@ int main(void)
 	}
 	else{
 	estado = 10;
-	tx_cadena_UART0("You are in Automatic Mode:\n ");				
+	tx_cadena_UART0("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nWelcome!!!\nYou are in Automatic Mode:\nThe program need some parameters:\n ");				
 	display_texto(1,"Set maximum angle",light_blue);
 	display_texto(10,"Welcome to automatic mode!",light_green);
 	display_texto(18,"Estado: ",gris);
 	display_numero(19,estado,gris);
 	}
 	
-	IR_period = ask_user();
+	IR_period = ask_user(); //Ask user about Timer1 Period
 	
 	do{
 		if(rx_completa){					 	// Comprabamos la llegada de una cadena por RXD
@@ -593,5 +593,41 @@ switch(display_token_pos){
 				break;
 
 }
+
 }
 }
+
+
+
+
+
+
+
+
+
+/*
+void random_comands(void){
+
+//	drawChar(10, 100, 'A', RED, BLACK, SMALL);
+//	drawChar(30, 100, 'A', RED, BLACK, MEDIUM);
+//	drawChar(60, 100, 'A', RED, BLACK, LARGE);
+
+	drawString(10, 00, "hello world!", CYAN, BLACK, SMALL);
+//	drawString(10, 240, "hello world!", YELLOW, BLACK, MEDIUM);
+//	drawString(10, 280, "hello world!", BLACK, WHITE, LARGE);
+//	drawCircle(100, 50, 25, BLUE); //x0, y0, radio, color
+//	fillCircle(100, 85, 25, MAGENTA);
+//	fillRect(100, 63, 70, 20, YELLOW); //x0, y0, ancho, alto, color
+	
+	for(retardo=0;retardo<1000000;retardo++);
+
+	for(contador=0;contador<10;contador++)
+		{
+			sprintf(buffer,"Contando... %d",contador);
+			drawString(10,100, buffer, BLUE, YELLOW, MEDIUM); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100 
+			for(retardo=0;retardo<10000000;retardo++);
+		}
+		
+
+	while(1);
+	}*/
