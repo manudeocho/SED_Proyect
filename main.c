@@ -43,6 +43,7 @@ float distancia = 0;
 float temperature = 0;
 
 char buffer[30];		// Buffer de recepción de 30 caracteres
+char buffer_uart[5];		// Buffer de recepción de 5 caracteres
 char *ptr_rx;			// puntero de recepción
 char rx_completa;		// Flag de recepción de cadena que se activa a "1" al recibir la tecla return CR(ASCII=13)
 char *ptr_tx;			// puntero de transmisión
@@ -251,7 +252,6 @@ void TIMER1_IRQHandler(){
 		if(estado == 3 || estado == 12){
 			temperature = get_temperature(); 
 			display_token[4] = 1; //Distancia
-			//uart0_fputs("Distance:\n");
 			NVIC_EnableIRQ(TIMER2_IRQn);			//  Habilita NVIC
 		}
 		else if(estado == 1) NVIC_DisableIRQ(TIMER2_IRQn);			//  Habilita NVIC
@@ -421,7 +421,7 @@ uint16_t ask_user(){
 }
 int main(void)
 {
-	uint16_t IR_period = 500;
+	uint16_t IR_period = 1500;
 	uint8_t display_token_pos = 0;
 	uint16_t i;
 	
@@ -530,8 +530,10 @@ switch(display_token_pos){
 			//drawString(55,8*16, buffer, BLACK, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
 			//sprintf(buffer,"%f",temperature);
 			//drawString(55,8*16, buffer, YELLOW, BLACK, 2); //Coordenadas en pixels desde la esquina superior izda: x:10, y:100
-				display_token[display_token_pos] = 0;
-		//sprintf(buffer,"Distance: %f\nTemperature: %f",distancia,temperature);
+			display_token[display_token_pos] = 0;
+		sprintf(buffer_uart,"%d %d\n",(uint8_t)grados,(uint8_t)distancia);
+		//sprintf(buffer_uart,"Distance: %d\n",(uint8_t)distancia);
+		tx_cadena_UART0(buffer_uart); 
 				break;
 	case 5:
 		display_texto(16,"Degrees:",orange);
