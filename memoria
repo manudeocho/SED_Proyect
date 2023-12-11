@@ -1,0 +1,88 @@
+5
+c. 
+
+Configuration
+
+void config_ADC(void)
+The function configures Analog-to-Digital Converter (ADC) settings on an LPC microcontroller. It turns on the ADC power, selects pin P0.23 (AD0.0) as the ADC input, disables pull-up/pull-down resistors for that pin, sets the clock frequency for the ADC, configures the ADC control register for Channel 0 with a specific clock division and power-up settings, initiates a conversion upon a match with Timer 1, enables the interrupt for the end of conversion on Channel 0, and sets the priority of the ADC interrupt in the Nested Vector Interrupt Controller (NVIC).
+
+void config_EINT0(void)
+The function sets up External Interrupt 0 (EINT0) for the LPC microcontroller. It associates the interrupt with button pin P2.10 and configures it to trigger on a rising edge (button press). Additionally, it enables the interrupt in the Nested Vector Interrupt Controller (NVIC) and sets its priority to 0.
+
+void config_EINT2(void)
+The function configures External Interrupt 2 (EINT2) for the LPC microcontroller. It associates the interrupt with button pin P2.12 (KEY2) and sets it to trigger on a rising edge. Furthermore, it enables the interrupt in the Nested Vector Interrupt Controller (NVIC) and sets its priority to 1.
+
+void config_pwm1(void)
+The function configures PWM1 (Pulse Width Modulation) on the LPC microcontroller. It sets pin P1.18 as the PWM output (specifically PWM1.1), enables the pull-up resistor for that pin, activates the PWM module, sets the value for the PWM counter based on the desired frequency and period, configures the PWM1.1 output, sets the condition to reset if the Timer Counter (TC) matches the value in MR0, and finally, enables the counter and PWM mode.
+
+void config_encoder(void)
+The function sets up an encoder interface on the LPC microcontroller. It powers on the encoder module, configures pins for MCI0 and MCI1 modes to enable encoder functionality, and sets the maximum position value to 4 billion for the encoder interface.
+
+void config_TIMER1(uint16_t IR_Period){
+The function configures Timer 1 on the LPC microcontroller. It powers up Timer 1, sets the Match Register 0 (MR0) and Match Register 1 (MR1) values, based on the parameter (`IR_Period`), to determine the time interval for generating interrupts. It configures Timer 1 to interrupt on Match 0 and reset on Match 0, enables the Timer 1 interrupt in the Nested Vector Interrupt Controller (NVIC), sets up an external match to toggle on Match 1, starts the timer, and sets the priority for the Timer 1 interrupt. The function receives the parameter `IR_Period` to calculate the timing of interrupts and timer behavior accordingly.
+
+void config_TIMER2(void)
+The function configures Timer 2 on the LPC microcontroller. It powers on Timer 2, sets the prescaler value to 1, configures Timer 2 to reset the Timer Counter (TC) on Match and generate interrupts, sets the Match Register 0 (MR0) value to count up to a specified match count based on the system clock frequency (`F_pclk`), output frequency (`f_out`), and number of samples (`N_muestras`), configures the External Match Register (EMR) to have no effect on hardware, starts Timer 2, enables the Timer 2 interrupt in the NVIC, and sets its priority level to 1.
+
+void config_TIMER3()
+The function configures Timer 3 on the LPC microcontroller. It powers up Timer 3, sets the Match Register 0 (MR0) value to the system clock frequency minus one, configures Timer 3 to interrupt and reset on Match 0, disables the Timer 3 interrupt in the NVIC, starts the timer, and sets the priority level for Timer 3 interrupt handling to 2.
+
+void config_DAC(void)
+The function configures the Digital-to-Analog Converter (DAC) on the LPC microcontroller. It sets pin P0.26 (AOUT) as the DAC output, disables pull-up/pull-down resistors for that pin, and sets DAC control register (DACCTRL) to its default value (0), potentially initializing or resetting DAC settings.
+
+void genera_muestras(uint16_t muestras_ciclo)
+The function generates samples of a sinusoidal signal and stores them in an array named 'muestras'. It utilizes a 'for' loop to calculate and assign values to the 'muestras' array. The calculated values represent a sinusoidal waveform with amplitude scaling to fit within the range of a 10-bit Digital-to-Analog Converter (DAC). The sine function is used with 'sin(2*pi*i/N_muestras)' to generate the sinusoidal signal, where 'i' iterates through the samples within a cycle determined by the parameter 'muestras_ciclo' passed into the function.
+
+ 
+IRQ_Handler
+
+void TIMER1_IRQHandler()
+The function serves as an interrupt handler for Timer 1 on the LPC1768 microcontroller. It manages different operations based on the system's current state (`estado`).
+When `estado` is equal to `2`, the function computes the angle (`grados`) using the QEI position and adjusts the servo position accordingly via the `set_servo` function.
+If `estado` equals `10`, it sets the `direccion` variable to indicate rightward servo movement.
+In the case of `estado` being `12` (automatic mode):
+- It incrementally adjusts the angle (`grados`) based on the `direccion` variable, rotating the servo either clockwise or counterclockwise by a specified amount (`turn_res`).
+- When the angle reaches the defined limits (`MIN` and `MAX`), it changes the movement direction.
+For `estado` values of `3` or `12`:
+- It retrieves the temperature using `get_temperature()`.
+- Sets a display token (`display_token[4]`) to indicate distance.
+- Enables the Timer 2 interrupt in the NVIC.
+When `estado` is `1`, it disables the Timer 2 interrupt in the NVIC.
+In other `estado` cases, it sets a display token (`display_token[1]`) and disables the Timer 2 interrupt in the NVIC.
+This function manages servo movement, temperature retrieval, and display updates, responding appropriately to different system states.
+
+void TIMER2_IRQHandler(void)
+The function `TIMER2_IRQHandler` is an interrupt service routine for Timer 2 on the LPC microcontroller. It handles interrupts generated by Timer 2. Within this function, it manages a static variable `indice_muestra` used to index the 'muestras' array. It clears the interrupt flag associated with Timer 2, updates the DAC (Digital-to-Analog Converter) output with the next value from the 'muestras' array, ensures circular counting of the 'indice_muestra' variable to prevent exceeding the array bounds (especially when 'N_muestras' is a power of 2), and updates the Match Register 0 (MR0) value for Timer 2 for subsequent interrupts based on the specified system clock frequency (`F_pclk`), output frequency (`f_out`), and number of samples (`N_muestras`).
+
+
+
+Display
+
+void display_numero(uint8_t Linea, char Texto, uint16_t color)
+The function aims to exhibit a numerical value on a display. It accepts three parameters: `Linea`, `Texto`, and `color`. The parameter `Linea` defines the specific line or row where the text is intended to be exhibited. `Texto` signifies the numerical value that needs to be showcased, while `color` determines the color in which the text will be displayed.
+
+Internally, this function leverages the `sprintf` function to convert the numerical value (`Texto`) into a string format, storing it in the `buffer`. Subsequently, it employs the `drawString` function to present this string representation of the numerical value at the designated location (`10, Linea * 16`) on the display, utilizing the specified color (`color`). Before drawing the new value, it clears the area on the screen to ensure the absence of remnants from the previous value at that location.
+
+void display_texto(uint8_t Linea, char *Texto, uint16_t color)
+The function aims to display textual information on a display screen. It takes in three parameters: `Linea`, `Texto`, and `color`. The `Linea` parameter determines the specific line or row where the text will be displayed. `Texto` represents the textual information that needs to be shown, and `color` specifies the color in which the text will be presented.
+
+Internally, this function utilizes the `sprintf` function to format the provided textual information (`Texto`) into a string and store it in the `buffer`. Subsequently, it utilizes the `drawString` function to exhibit this string representation of the text at the designated position (`10, Linea * 16`) on the display screen using the specified color (`color`). Prior to rendering the new text, it clears the designated area on the display screen to ensure there are no remnants of the previously displayed text at that location.
+
+void display_borrar(uint8_t min, uint8_t max)
+The function is designed to clear a specific range of lines on a display screen. It takes in two parameters: `min` and `max`, which determine the range of lines to be cleared on the display.
+
+Internally, this function uses a `for` loop that iterates through the specified range of lines, starting from `min` up to and including `max`. Within each iteration, it utilizes the `sprintf` function to create an empty string (`buffer` filled with spaces) that matches the width of the display. Then, it calls the `drawString` function to draw this empty string at specific coordinates (`10, 16 * i`) on the display, effectively clearing the content in the designated lines. The given coordinates specify the pixel location from the top-left corner of the display where the clearing operation will occur.
+
+Modo Manual
+
+void set_servo(float Grados)
+The function is intended to control a servo motor's position based on the specified angle in degrees (`Grados`). If the provided angle (`Grados`) is less than 181 degrees, the function performs servo motor control. 
+
+Within the function, it calculates and sets the Match Register 1 (MR1) value of PWM1 (Pulse Width Modulation) based on the angle provided. It computes the Duty Cycle based on the angle in degrees, adjusting it to control the servo motor position within a specified range (`0.5/15` to `2.5/15`).
+
+Additionally, if the provided angle exceeds 180 degrees, it updates a display token (`display_token[6]`) to indicate that the angle is invalid.
+
+Overall, this function manages servo motor control by adjusting the PWM duty cycle based on the specified angle and handles out-of-range angle values to prevent inappropriate motor operation.
+
+
+
