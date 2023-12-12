@@ -38,6 +38,7 @@ float grados = 0;
 #define V_refp 3.3
 uint16_t muestras[N_muestras];
 uint16_t f_out = 100;
+uint8_t threashold = 30;
 
 float distancia = 0;
 float temperature = 0;
@@ -155,9 +156,10 @@ void TIMER2_IRQHandler(void)
 {
 static uint16_t indice_muestra;
 	LPC_TIM2->IR|= (1<<0); 										// borrar flag
-	LPC_DAC->DACR= muestras[indice_muestra++] << 6; // bit6..bit15 
+	if(distancia < threashold) LPC_DAC->DACR= muestras[indice_muestra++] << 6; // bit6..bit15 
+	else  LPC_DAC->DACR= 0x00 << 6;
 	indice_muestra&= N_muestras-1;						// contador circular (Si N_muestras potencia de 2) 
-	LPC_TIM2->MR0 = (F_pclk/f_out/N_muestras)-1;  // Cuentas hasta el Match 	
+	LPC_TIM2->MR0 = (F_pclk/f_out/N_muestras)-1;  // Cuentas hasta el Match 								
 }	
 
 
@@ -367,7 +369,7 @@ void ADC_IRQHandler(void)
 		idistance = 1;
 	}
 	distancia = 1/idistance;
-	if(distancia != 1)f_out = 220*pow(2, distancia / 120); 
+	if(distancia > 10 && distancia < 40)f_out = 440*pow(2, (distancia / 6) - 7);  //Partiendo de un La4, se modifica la frecuencia bajándole x tonos según la distancia
 }
 
 uint16_t ask_user(){
@@ -413,8 +415,30 @@ uint16_t ask_user(){
 			 }
 		}while(fin==0);
 	fin = 0;	
+		
+		sprintf(buffer, "%d ms selected\n3. threashold? (To insert threashold as 'xx' followed by 'cm'\n",IR_Period);
+	tx_cadena_UART0(buffer); 
 
-	sprintf(buffer, "%d ms selected\n3. h? (To insert new parameters and see this help again 'h' followed by Enter\n",IR_Period);
+	do{
+		if(rx_completa){					 	
+			rx_completa=0; 				
+			if (strcmp (buffer, "\n20cm\r") == 0){
+				threashold = 20;
+				fin=1;
+			}
+			else if (strcmp (buffer, "\n30cm\r") == 0){
+				threashold = 30;
+				fin=1;
+}
+			else if (strcmp (buffer, "\n40cm\r") == 0){
+				threashold = 40;
+				fin=1;}
+			else tx_cadena_UART0("Wrong command.\n Please, text it again.\n\r");
+			 }
+		}while(fin==0);
+	fin = 0;	
+
+	sprintf(buffer, "%d cm selected\n4. h? (To insert new parameters and see this help again 'h' followed by Enter\n",threashold);
 	tx_cadena_UART0(buffer); 
 
 	return IR_Period;
